@@ -5,11 +5,30 @@
 #ifndef NPSAT_URF_MY_STRUCTURES_H
 #define NPSAT_URF_MY_STRUCTURES_H
 
+#include <Eigen/Sparse>
+
+typedef Eigen::SparseMatrix<double> eigenMat; // declares a column-major sparse matrix type of double
+typedef Eigen::Triplet<double> eigenTriplet;
+
 struct trajP{
-    double x;
-    double y;
-    double z;
-    double v;
+    double x = 0.0;
+    double y = 0.0;
+    double z = 0.0;
+    double v = 0.0;
+    double len = 0.0;
+};
+
+struct segInfo{
+    segInfo(){
+        v = 0;
+        l = 0;
+    }
+    segInfo(double v_in, double l_in){
+        v = v_in;
+        l = l_in;
+    }
+    double v = 0;
+    double l = 0;
 };
 
 struct URFoptions{
@@ -20,9 +39,9 @@ struct URFoptions{
     double K_d = 0;
     double rho_b = 1.0;
 
-    double minStep = 0.1;
-    double minElemSize = 20;
-    double TimeStep = 1; // in years
+    double minElemSize = 0.01;
+    double maxElemSize = 300;
+    double TimeStep = 365.0; // in years
     double maxTotalTime = 1000; // in years
     double wmega = 0.5;
 };

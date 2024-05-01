@@ -2,8 +2,8 @@
 alpha = 0.32;
 beta = 0.83;
 Dm= 1.1578e-004;
-minStep = 0.1;
-minElemSize = 20;
+minStep = 0.01;
+minElemSize = 300;
 lambda = 0; % or decay
 K_d=0;
 rho_b=1;%it doesnt matter since K_d=0
@@ -133,13 +133,15 @@ cnstHD=find(~isnan(CB));
 
 for it=1:length(Dt)
     Aglo=Mglo+wmega*Dt(it)*Dglo;
-    Bglo=(Mglo-(1-wmega)*Dt(it)*Dglo)*Cinit+Dt(it)*((1-wmega)*F+wmega*F);
+    %Bglo=(Mglo-(1-wmega)*Dt(it)*Dglo)*Cinit+Dt(it)*((1-wmega)*F+wmega*F);
+    Bglo=(Mglo-(1-wmega)*Dt(it)*Dglo)*Cinit;%+Dt(it)*((1-wmega)*F+wmega*F);
     
     % Apply boundary conditions
     KK=Aglo(ldnans,ldnans);
     GG=Aglo(ldnans,cnstHD);
-    dd=CB(cnstHD);
-    CB(ldnans)=KK\(Bglo(ldnans)-GG*dd);
+    %dd=CB(cnstHD);
+    %CB(ldnans)=KK\(Bglo(ldnans)-GG*dd);
+    CB(ldnans)=KK\(Bglo(ldnans)-GG);
     Cinit=CB;
     C(it,:)=CB';
 end
