@@ -1,32 +1,17 @@
-# Prerequisites
-*.d
+#first ignore everything
+/*
+# "un-ignore in the root folder
+!.gitignore
+!*.md
+!*.m
+!LICENSE
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+!/test_data
+/test_data/*
+!/Local/*.traj
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+!/CPP
+/CPP/*
+!/CPP/CMakeLists.txt
+!/CPP/*.cpp
+!/CPP/*.h

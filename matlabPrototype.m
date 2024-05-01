@@ -12,7 +12,7 @@ TimeStep = 1; % this is years
 TotalTime = 800; %years
 wmega=0.5;%crank Nickolson scheme
 %% Should this be equal to porocity?
-theta = 1;
+theta = 0.1;
 
 %% First we read the streamlines.
 S = readICHNOSgather('test_data/teststrmlinfit.traj');
@@ -64,24 +64,44 @@ aL = alpha*p_1d(end)^beta;
 for ii = 1:Np-1
     Del = aL*v_el(ii) + Dm;
     Lel = p_1d(ii+1) - p_1d(ii);
-    rho_term = theta + rho_b*K_d;
+    %rho_term = theta + rho_b*K_d;
 
-%   Dx*theta   | 1  -1|    Vx  |-1  1|                          L |2  1|
-%   --------   |      | + ---- |     | +lambda(theta + pho*Kd)*---|    |
-%      L       |-1   1|     2  |-1  1|                          6 |1  2|
+% %   Dx*theta   | 1  -1|    Vx  |-1  1|                          L |2  1|
+% %   --------   |      | + ---- |     | +lambda(theta + pho*Kd)*---|    |
+% %      L       |-1   1|     2  |-1  1|                          6 |1  2|
+% 
+%     D11 =  Del*theta/Lel  -  v_el(ii)/2 + 2*lambda*rho_term*Lel/6;
+%     D12 = -Del*theta/Lel  +  v_el(ii)/2 + 1*lambda*rho_term*Lel/6;
+%     D21 = -Del*theta/Lel  -  v_el(ii)/2 + 1*lambda*rho_term*Lel/6;
+%     D22 =  Del*theta/Lel  +  v_el(ii)/2 + 2*lambda*rho_term*Lel/6;
+
+% %                    L  |2  1|
+% %  (pho*Kd + theta) --- |    |
+% %                    6  |1  2|
+%     A11 = 2*rho_term*Lel/6;
+%     A12 = 1*rho_term*Lel/6;
+%     A21 = 1*rho_term*Lel/6;
+%     A22 = 2*rho_term*Lel/6;
+    
+    rho_term = 1 + rho_b*K_d/theta;
+
+%      Dx   | 1  -1|    Vx  |-1  1|                         L |2  1|
+%   --------|      | + ---- |     | + lambda(1 + pho*Kd/n)*---|    |
+%      L    |-1   1|    2n  |-1  1|                         6 |1  2|
    
-    D11 =  Del*theta/Lel  -  v_el(ii)/2 + 2*lambda*rho_term*Lel/6;
-    D12 = -Del*theta/Lel  +  v_el(ii)/2 + 1*lambda*rho_term*Lel/6;
-    D21 = -Del*theta/Lel  -  v_el(ii)/2 + 1*lambda*rho_term*Lel/6;
-    D22 =  Del*theta/Lel  +  v_el(ii)/2 + 2*lambda*rho_term*Lel/6;
+    D11 =  Del/Lel  -  v_el(ii)/2 + 2*lambda*rho_term*Lel/6;
+    D12 = -Del/Lel  +  v_el(ii)/2 + 1*lambda*rho_term*Lel/6;
+    D21 = -Del/Lel  -  v_el(ii)/2 + 1*lambda*rho_term*Lel/6;
+    D22 =  Del/Lel  +  v_el(ii)/2 + 2*lambda*rho_term*Lel/6;
 
-%                    L  |2  1|
-%  (pho*Kd + theta) --- |    |
-%                    6  |1  2|
+%                 L  |2  1|
+%  (1+ pho*Kd/n) --- |    |
+%                 6  |1  2|
     A11 = 2*rho_term*Lel/6;
     A12 = 1*rho_term*Lel/6;
     A21 = 1*rho_term*Lel/6;
     A22 = 2*rho_term*Lel/6;
+
 
     % This is prototype and we dotn care about efficiency. Otherwise use
     % sparse function
@@ -106,10 +126,10 @@ CB = nan(Np,1);
 CB(1,1) = 1;
 
 Dt=diff(T);
-C=zeros(length(Dt),length(c));
+C=zeros(length(Dt),length(CB));
 
-ldnans=find(isnan(c));
-cnstHD=find(~isnan(c));
+ldnans=find(isnan(CB));
+cnstHD=find(~isnan(CB));
 
 for it=1:length(Dt)
     Aglo=Mglo+wmega*Dt(it)*Dglo;
@@ -118,11 +138,16 @@ for it=1:length(Dt)
     % Apply boundary conditions
     KK=Aglo(ldnans,ldnans);
     GG=Aglo(ldnans,cnstHD);
-    dd=c(cnstHD);
-    c(ldnans)=KK\(Bglo(ldnans)-GG*dd);
-    Cinit=c;
-    C(it,:)=c';
+    dd=CB(cnstHD);
+    CB(ldnans)=KK\(Bglo(ldnans)-GG*dd);
+    Cinit=CB;
+    C(it,:)=CB';
 end
+val=C(:,end)';
+negval=-1*val;
+negval=[zeros(1,1) negval];
+negval=negval(1,1:size(val,2));
+URF=val+negval;
 
 
 
