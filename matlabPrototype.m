@@ -161,16 +161,21 @@ URF=val+negval;
 %% Lognormal Fit procedure in Matlab
 % Fit function
 ft = fittype( '(1/(x*b*sqrt(2*pi)))*exp((-(log(x)-a)^2)/(2*b^2))', 'independent', 'x', 'dependent', 'y' );
+%ft = fittype( 'sqrt(b/(2*pi*x^3))*exp(-(b*(x-a)^2)/(2*a^2*x))', 'independent', 'x', 'dependent', 'y' );
 opts = fitoptions( 'Method', 'NonlinearLeastSquares' );
 opts.Display = 'Off';
 opts.StartPoint = [0.499112701571756 0.336174051321482];
 %% Fitting
-X = 1:length(URFL0.urfs{ii,1});
-[xData, yData] = prepareCurveData( X, URFL0.urfs{ii,1} );
+X = 1:length(T(:,1));
+[xData, yData] = prepareCurveData( X, T(:,1)' );
 [fitresult, gof] = fit( xData, yData, ft, opts );
 ab = coeffvalues(fitresult);
 %% lognormal as inline function
 lgnrmfun = @(a,b,x)((1./(x.*b.*sqrt(2*pi))).*exp((-(log(x)-a).^2)./(2*b^2)));
+%%
+plot(T(:,1))
+hold on
+plot(lgnrmfun(ab(1),ab(2),1:267))
 
 
 
