@@ -34,7 +34,7 @@ double lgnrmlFunction(const input_vector& input, const parameter_vector& params)
      */
 
     const double logx = std::log(x);
-    const double nominator = dlib::sqrt_2 * exp(- ((a - logx)*(a - logx))/(2.0*b*b) );
+    const double nominator = dlib::sqrt_2 * exp( -((a - logx)*(a - logx))/(2.0*b*b) );
     const double denominator = b * x * sqrtpi * 2.0;
     double out = nominator/denominator;
     return out;
@@ -78,7 +78,7 @@ parameter_vector residual_derivative(const std::pair<input_vector, double>& data
     const double logx = std::log(x);
     const double a_logxsq = (a - logx)*(a - logx);
     const double sqb = b*b;
-    const double exp_fraction = dlib::sqrt_2 * std::exp(- a_logxsq/(2*sqb));
+    const double exp_fraction = dlib::sqrt_2 * std::exp( -a_logxsq/(2*sqb));
 
     const double numeratorA = exp_fraction * (2 * a - 2 * logx);
     const double denominatorA = b*sqb * x * sqrtpi * 4;
@@ -103,8 +103,9 @@ bool fitLgnrm(data_samples& DS, double& maxYpos, parameter_vector& x){
                                residual_derivative,
                                DS,
                                x);
-        return true;
+        std::cout << dlib::trans(x) << "| " << length(x - params) << std::endl;
 
+        return true;
     }
     catch (std::exception& e)
     {

@@ -9,6 +9,10 @@
 
 int main(int argc, char *argv[]) {
     std::cout << argc << std::endl;
+    if (argc < 3){
+        std::cout << "Two inputs are needed" << std::endl;
+        return 0;
+    }
     std::cout << argv[0] << std::endl;
     std::cout << argv[1] << std::endl;
     std::cout << argv[2] << std::endl;
@@ -18,13 +22,25 @@ int main(int argc, char *argv[]) {
 
 
     // Start with reading the file
-    std::string filename = "g:\\UCDAVIS\\npsat-urf\\test_data\\teststrmlinfit.traj";
+    std::string filename = "teststrmlinfit.traj";
     std::ifstream datafile(filename.c_str());
     if (!datafile.good()) {
         std::cout << "Can't open the file " << filename << std::endl;
         return false;
     }
     else{
+        std::string outfile(argv[2]);
+        outfile = outfile + "_" + std::to_string(atoi(argv[1])) + ".dat";
+        std::ofstream ofile(outfile.c_str());
+        ofile << "Eid, Sid, Len, ER";
+        for (int i = 1; i < 6;++i){
+            ofile << ", Age" << i << ", mean" << i << ", std" << i
+                  << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i
+                  << ", meanDf" << i << ", stdDf" << i << ", ScaleDf" << i;
+        }
+        ofile << std::endl;
+
+
         std::string line;
         int tmpInt, Eid, Sid, iER;
         int cntStrml = 0;
@@ -92,11 +108,24 @@ int main(int argc, char *argv[]) {
 
             if (CompleteStreamlineFound){
                 std::cout << Eid << " " << Sid << " " << ++cntStrml << std::endl;
+                //std::vector<FittedParam> AllPorFP;
                 FittedParam fp;
-                bool tf = NPSATurf(S, StreamlineLength, opt, fp);
+                double velMult = 1.0;
+                ofile << Eid << ", " << Sid << ", " << StreamlineLength << ", " << iER << ", ";
+                for (int i = 0; i < 5; ++i){
+                    bool tf = NPSATurf(S, StreamlineLength, velMult,  opt, fp);
+                    ofile << fp.Age << ", " << fp.urf.m << ", " << fp.urf.s << ", ";
+                    ofile << fp.Decay.m << ", " << fp.Decay.s << ", " << fp.Decay.sc << ", ";
+                    ofile << fp.Diff.m << ", " << fp.Diff.s << ", " << fp.Diff.sc << ", ";
+                    //AllPorFP.push_back(fp);
+                    velMult = velMult + 1.0;
+                }
+                ofile << std::endl;
 
+                CompleteStreamlineFound = false;
             }
         }
+        ofile.close();
     }
 
 

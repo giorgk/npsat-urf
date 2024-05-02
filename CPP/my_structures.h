@@ -61,12 +61,24 @@ struct ParamSet{
     double m;
     double s;
     double sc;
+    void setVal(double v){
+        m = v;
+        s = v;
+        sc = v;
+    }
 };
 
 struct FittedParam{
     ParamSet urf;
     ParamSet Decay;
     ParamSet Diff;
+    double Age;
+    double Len;
+    void setVal(double v){
+        urf.setVal(v);
+        Decay.setVal(v);
+        Diff.setVal(v);
+    }
 };
 
 
