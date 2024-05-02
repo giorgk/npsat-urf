@@ -6,9 +6,19 @@
 #define NPSAT_URF_MY_STRUCTURES_H
 
 #include <Eigen/Sparse>
+#include <dlib/optimization.h>
 
+//Eigen definitions
 typedef Eigen::SparseMatrix<double> eigenMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> eigenTriplet;
+
+//dlib definitions
+typedef dlib::matrix<double,1,1> input_vector;
+typedef dlib::matrix<double,2,1> parameter_vector;
+typedef std::vector<std::pair<input_vector, double> > data_samples;
+
+//const double sqrt2pi = std::sqrt(2*dlib::pi);
+const double sqrtpi = std::sqrt(dlib::pi);
 
 struct trajP{
     double x = 0.0;
@@ -40,10 +50,23 @@ struct URFoptions{
     double rho_b = 1.0;
 
     double minElemSize = 0.01;
-    double maxElemSize = 300;
+    double maxElemSize = 20;
     double TimeStep = 365.0; // in years
     double maxTotalTime = 1000; // in years
     double wmega = 0.5;
+    double URFtol = 0.99;
+};
+
+struct ParamSet{
+    double m;
+    double s;
+    double sc;
+};
+
+struct FittedParam{
+    ParamSet urf;
+    ParamSet Decay;
+    ParamSet Diff;
 };
 
 

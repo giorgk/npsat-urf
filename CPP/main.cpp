@@ -92,7 +92,8 @@ int main(int argc, char *argv[]) {
 
             if (CompleteStreamlineFound){
                 std::cout << Eid << " " << Sid << " " << ++cntStrml << std::endl;
-                bool tf = NPSATurf(S, StreamlineLength, opt);
+                FittedParam fp;
+                bool tf = NPSATurf(S, StreamlineLength, opt, fp);
 
             }
         }

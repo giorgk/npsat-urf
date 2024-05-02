@@ -7,6 +7,112 @@
 
 #include "my_structures.h"
 
+
+
+double halfTime(double val){
+    return std::log(2.0)/(val*365.0);
+}
+
+
+// We will use this function to generate data.  It represents a function of 2 variables
+// and 3 parameters.   The least squares procedure will be used to infer the values of
+// the 3 parameters based on a set of input/output pairs.
+double lgnrmlFunction(const input_vector& input, const parameter_vector& params){
+    const double a = params(0);
+    const double b = params(1);
+
+    const double x = input(0);
+
+    /*
+               /               2 \
+               |   (a - log(x))  |
+    sqrt(2) exp| - ------------- |
+               |           2     |
+               \        2 b      /
+    ------------------------------
+            b x sqrt(pi) 2
+     */
+
+    const double logx = std::log(x);
+    const double nominator = dlib::sqrt_2 * exp(- ((a - logx)*(a - logx))/(2.0*b*b) );
+    const double denominator = b * x * sqrtpi * 2.0;
+    double out = nominator/denominator;
+    return out;
+}
+
+// This function is the "residual" for a least squares problem.   It takes an input/output
+// pair and compares it to the output of our model and returns the amount of error.  The idea
+// is to find the set of parameters which makes the residual small on all the data pairs.
+double residual(const std::pair<input_vector, double>& data, const parameter_vector& params){
+    return lgnrmlFunction(data.first, params) - data.second;
+}
+
+// This function is the derivative of the residual() function with respect to the parameters.
+parameter_vector residual_derivative(const std::pair<input_vector, double>& data, const parameter_vector& params){
+    /*
+    wrt a (mean)
+                 /               2 \
+                 |   (a - log(x))  |
+      sqrt(2) exp| - ------------- | (2 a - 2 log(x))
+                 |           2     |
+                 \        2 b      /
+    - -----------------------------------------------
+                       3
+                      b  x sqrt(pi) 4
+
+    wrt b (std)
+               /               2 \                            /               2 \
+               |   (a - log(x))  |             2              |   (a - log(x))  |
+    sqrt(2) exp| - ------------- | (a - log(x))    sqrt(2) exp| - ------------- |
+               |           2     |                            |           2     |
+               \        2 b      /                            \        2 b      /
+    -------------------------------------------- - ------------------------------
+                    4                                       2
+                   b  x sqrt(pi) 2                         b  x sqrt(pi) 2
+        */
+    parameter_vector der;
+    const double a = params(0);
+    const double b = params(1);
+
+    const double x = data.first(0);
+    const double logx = std::log(x);
+    const double a_logxsq = (a - logx)*(a - logx);
+    const double sqb = b*b;
+    const double exp_fraction = dlib::sqrt_2 * std::exp(- a_logxsq/(2*sqb));
+
+    const double numeratorA = exp_fraction * (2 * a - 2 * logx);
+    const double denominatorA = b*sqb * x * sqrtpi * 4;
+
+    const double numeratorB = exp_fraction * a_logxsq;
+    const double denominatorB = sqb*sqb * x * sqrtpi * 2;
+
+    der(0) = -numeratorA/denominatorA;
+    der(1) = numeratorB/denominatorB - exp_fraction/(sqb * x * sqrtpi * 2);
+
+    return der;
+}
+
+bool fitLgnrm(data_samples& DS, double& maxYpos, parameter_vector& x){
+    parameter_vector params;
+    params(0) = log(maxYpos);
+    params(1) = 0.3;
+    try{
+        x = params;
+        dlib::solve_least_squares_lm(dlib::objective_delta_stop_strategy(1e-7),
+                               residual,
+                               residual_derivative,
+                               DS,
+                               x);
+        return true;
+
+    }
+    catch (std::exception& e)
+    {
+        std::cout << e.what() << std::endl;
+        return false;
+    }
+}
+
 /*
 void createTriplets(int n, std::vector<eigenTriplet>& T){
     eigenMat A(n,n);
