@@ -1,4 +1,5 @@
 prefix teststrmlinfit_
+paddingZeros 4
 suffix traj // No dot
 output_prefix outputName
 alpha 0.32

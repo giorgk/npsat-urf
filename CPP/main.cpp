@@ -9,13 +9,19 @@
 
 int main(int argc, char *argv[]) {
 
+    std::string input_arg(argv[1]);
+    if (input_arg.compare("-v") == 0){
+        std::cout << "version 1.0" << std::endl;
+        return 0;
+    }
+
     URFoptions opt;
     readOptionFile(opt);
     opt.ProcId = atoi(argv[1]);
 
 
     // Start with reading the file
-    std::string filename = opt.prefixInput + std::to_string(opt.ProcId) + "." + opt.suffixInput;
+    std::string filename = opt.prefixInput + num2Padstr(opt.ProcId, opt.paddingZeros) + "." + opt.suffixInput;
     std::cout << "Reading: " << filename << std::endl;
     std::ifstream datafile(filename.c_str());
     if (!datafile.good()) {

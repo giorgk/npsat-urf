@@ -69,6 +69,10 @@ bool readOptionFile(URFoptions& opt){
                 inp >> opt.skipAge;
                 continue;
             }
+            if (propname.compare("paddingZeros") == 0){
+                inp >> opt.paddingZeros;
+                continue;
+            }
             count++;
             if (count > 20){
                 break;
@@ -201,8 +205,14 @@ double fitError(data_samples& DS, parameter_vector& params){
         }
     }
     return std::sqrt(sumSqErr/cntVal);
-
 }
+
+std::string num2Padstr(int i, int n) {
+    std::stringstream ss;
+    ss << std::setw(n) << std::setfill('0') << i;
+    return ss.str();
+}
+
 
 /*
 void createTriplets(int n, std::vector<eigenTriplet>& T){

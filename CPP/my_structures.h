@@ -45,6 +45,7 @@ struct URFoptions{
     std::string prefixInput;
     std::string suffixInput;
     std::string prefixOutput;
+    int paddingZeros;
     int ProcId;
 
     double alpha = 0.32;
