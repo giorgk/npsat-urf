@@ -1,0 +1,12 @@
+prefix teststrmlinfit_
+suffix traj // No dot
+output_prefix outputName
+alpha 0.32
+beta 0.83
+Dm 1.1578e-4
+minElemSize 0.01
+maxElemSize 20
+TimeStep 365 // years
+maxTotalTime 2000 // years
+URFtol 0.99
+skipAge 3

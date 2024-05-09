@@ -8,7 +8,8 @@
 
 !/test_data
 /test_data/*
-!/Local/*.traj
+!/test_data/*.traj
+!/test_data/*.opt
 
 !/CPP
 /CPP/*

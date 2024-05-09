@@ -42,6 +42,11 @@ struct segInfo{
 };
 
 struct URFoptions{
+    std::string prefixInput;
+    std::string suffixInput;
+    std::string prefixOutput;
+    int ProcId;
+
     double alpha = 0.32;
     double beta = 0.83;
     double Dm =1.1578e-4;
@@ -55,16 +60,19 @@ struct URFoptions{
     double maxTotalTime = 1000; // in years
     double wmega = 0.5;
     double URFtol = 0.99;
+    int skipAge = 2;
 };
 
 struct ParamSet{
     double m;
     double s;
     double sc;
+    double err;
     void setVal(double v){
         m = v;
         s = v;
         sc = v;
+        err = v;
     }
 };
 

@@ -8,6 +8,76 @@
 #include "my_structures.h"
 
 
+bool readOptionFile(URFoptions& opt){
+    const std::string optfile = "npsat_urf.opt";
+    std::ifstream datafile(optfile.c_str());
+    if (!datafile.good()) {
+        std::cout << "Can't open the file " << optfile << std::endl;
+        return false;
+    }
+    else{
+        std::string line, propname;
+        int count = 0;
+        while (getline(datafile, line)){
+            std::istringstream inp(line);
+            inp >> propname;
+            if (propname.compare("prefix") == 0){
+                inp >> opt.prefixInput;
+                continue;
+            }
+            if (propname.compare("suffix") == 0){
+                inp >> opt.suffixInput;
+                continue;
+            }
+            if (propname.compare("output_prefix") == 0){
+                inp >> opt.prefixOutput;
+                continue;
+            }
+            if (propname.compare("alpha") == 0){
+                inp >> opt.alpha;
+                continue;
+            }
+            if (propname.compare("beta") == 0){
+                inp >> opt.beta;
+                continue;
+            }
+            if (propname.compare("Dm") == 0){
+                inp >> opt.Dm;
+                continue;
+            }
+            if (propname.compare("minElemSize") == 0){
+                inp >> opt.minElemSize;
+                continue;
+            }
+            if (propname.compare("maxElemSize") == 0){
+                inp >> opt.maxElemSize;
+                continue;
+            }
+            if (propname.compare("TimeStep") == 0){
+                inp >> opt.TimeStep;
+                continue;
+            }
+            if (propname.compare("maxTotalTime") == 0){
+                inp >> opt.maxTotalTime;
+                continue;
+            }
+            if (propname.compare("URFtol") == 0){
+                inp >> opt.URFtol;
+                continue;
+            }
+            if (propname.compare("skipAge") == 0){
+                inp >> opt.skipAge;
+                continue;
+            }
+            count++;
+            if (count > 20){
+                break;
+            }
+        }
+        return true;
+    }
+
+}
 
 double halfTime(double val){
     return std::log(2.0)/(val*365.0);
@@ -103,7 +173,7 @@ bool fitLgnrm(data_samples& DS, double& maxYpos, parameter_vector& x){
                                residual_derivative,
                                DS,
                                x);
-        std::cout << dlib::trans(x) << "| " << length(x - params) << std::endl;
+        //std::cout << dlib::trans(x) << "| " << length(x - params) << std::endl;
 
         return true;
     }
@@ -112,6 +182,26 @@ bool fitLgnrm(data_samples& DS, double& maxYpos, parameter_vector& x){
         std::cout << e.what() << std::endl;
         return false;
     }
+}
+
+double fitError(data_samples& DS, parameter_vector& params){
+    double urfx;
+    double sumSqErr = 0.0;
+    double cumUrf = 0.0;
+    double cntVal = 0.0;
+    double err;
+    for (unsigned int i = 0; i < DS.size(); ++i){
+        urfx = lgnrmlFunction(DS[i].first, params);
+        cumUrf = cumUrf + urfx;
+        cntVal = cntVal +1.0;
+        err = DS[i].second - urfx;
+        sumSqErr = sumSqErr + err*err;
+        if (cumUrf > 0.95){
+            break;
+        }
+    }
+    return std::sqrt(sumSqErr/cntVal);
+
 }
 
 /*

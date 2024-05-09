@@ -116,8 +116,8 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
     }
     fp.Age = age/365.0;
     fp.Len = len;
-    if (fp.Age < 5){
-        for (int i = 0; i < 5; ++i){
+    if (fp.Age < opt.skipAge){
+        for (int i = 0; i < opt.skipAge; ++i){
             double d =static_cast<double>(i);
             if (fp.Age <= d){
                 fp.setVal(-d);
@@ -193,6 +193,7 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
     Eigen::VectorXd RHSDecay(nel);
 
     int cnt = 0;
+    bool bExceedMaxTime = false;
     while(true){
 
         RHS2 = BgloRed*Cprev;
@@ -229,9 +230,14 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
             break;
         }
         cnt = cnt + 1;
-        if (cnt > 500){
+        if (cnt > opt.maxTotalTime){
+            bExceedMaxTime = true;
             break;
         }
+    }
+    if (bExceedMaxTime){
+        fp.setVal(-99);
+        return true;
     }
 
     // Fitting URFs
@@ -273,8 +279,8 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
             maxYPosurfDiff = x;
         }
 
-        std::cout << urf_val << " " << urf_dec_val << " " << urf_dec_val*scaleDecay << " "
-                  << urf_diff_val << " " << urf_diff_val*scaleDiff << std::endl;
+        //std::cout << urf_val << " " << urf_dec_val << " " << urf_dec_val*scaleDecay << " "
+        //          << urf_diff_val << " " << urf_diff_val*scaleDiff << std::endl;
 
         DS_urf.emplace_back(input, urf_val);
         DS_urfDecay.emplace_back(input, urf_dec_val*scaleDecay);
@@ -287,6 +293,7 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
     bool tf;
     tf = fitLgnrm(DS_urf,maxYPosurf, Xurf);
     if (tf){
+        fp.urf.err = fitError(DS_urf, Xurf);
         fp.urf.m = Xurf(0,0);
         fp.urf.s = Xurf(1,0);
         fp.urf.sc = 1.0;
@@ -295,10 +302,12 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.urf.m = -88.0;
         fp.urf.s = -88.0;
         fp.urf.sc = 1.0;
+        fp.urf.err -88.0;
     }
 
     tf = fitLgnrm(DS_urfDecay,maxYPosurfDec, XurfDec);
     if (tf){
+        fp.Decay.err = fitError(DS_urfDecay, XurfDec);
         fp.Decay.m = XurfDec(0,0);
         fp.Decay.s = XurfDec(1,0);
         fp.Decay.sc = scaleDecay;
@@ -307,10 +316,12 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.Decay.m = -88.0;
         fp.Decay.s = -88.0;
         fp.Decay.sc = scaleDecay;
+        fp.Decay.err = -88.0;
     }
 
     tf = fitLgnrm(DS_urfDiff,maxYPosurfDiff, XurfDiff);
     if (tf){
+        fp.Diff.err = fitError(DS_urfDiff, XurfDiff);
         fp.Diff.m = XurfDiff(0,0);
         fp.Diff.s = XurfDiff(1,0);
         fp.Diff.sc = scaleDiff;
@@ -319,6 +330,7 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.Diff.m = -88.0;
         fp.Diff.s = -88.0;
         fp.Diff.sc = scaleDiff;
+        fp.Diff.err = -88.0;
     }
 
     return true;

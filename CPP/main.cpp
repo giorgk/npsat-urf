@@ -8,35 +8,30 @@
 #include "NPSAT_URF_main.h"
 
 int main(int argc, char *argv[]) {
-    std::cout << argc << std::endl;
-    if (argc < 3){
-        std::cout << "Two inputs are needed" << std::endl;
-        return 0;
-    }
-    std::cout << argv[0] << std::endl;
-    std::cout << argv[1] << std::endl;
-    std::cout << argv[2] << std::endl;
-    std::cout << "Hello, World!" << std::endl;
 
     URFoptions opt;
+    readOptionFile(opt);
+    opt.ProcId = atoi(argv[1]);
 
 
     // Start with reading the file
-    std::string filename = "teststrmlinfit.traj";
+    std::string filename = opt.prefixInput + std::to_string(opt.ProcId) + "." + opt.suffixInput;
+    std::cout << "Reading: " << filename << std::endl;
     std::ifstream datafile(filename.c_str());
     if (!datafile.good()) {
         std::cout << "Can't open the file " << filename << std::endl;
         return false;
     }
     else{
-        std::string outfile(argv[2]);
-        outfile = outfile + "_" + std::to_string(atoi(argv[1])) + ".dat";
+        std::string outfile;
+        outfile = opt.prefixOutput + "_" + std::to_string(opt.ProcId) + ".dat";
+        std::cout << "Output file: " << outfile << std::endl;
         std::ofstream ofile(outfile.c_str());
         ofile << "Eid, Sid, Len, ER";
         for (int i = 1; i < 6;++i){
-            ofile << ", Age" << i << ", mean" << i << ", std" << i
-                  << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i
-                  << ", meanDf" << i << ", stdDf" << i << ", ScaleDf" << i;
+            ofile << ", Age" << i << ", mean" << i << ", std" << i << ", err" << i
+                  << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i << ", errDc" << i
+                  << ", meanDf" << i << ", stdDf" << i << ", ScaleDf" << i << ", errDf" << i;
         }
         ofile << std::endl;
 
@@ -111,12 +106,22 @@ int main(int argc, char *argv[]) {
                 //std::vector<FittedParam> AllPorFP;
                 FittedParam fp;
                 double velMult = 1.0;
-                ofile << Eid << ", " << Sid << ", " << StreamlineLength << ", " << iER << ", ";
+                ofile << Eid << ", " << Sid << ", " << std::setprecision(2) << std::fixed << StreamlineLength << ", " << iER << ", ";
                 for (int i = 0; i < 5; ++i){
-                    bool tf = NPSATurf(S, StreamlineLength, velMult,  opt, fp);
-                    ofile << fp.Age << ", " << fp.urf.m << ", " << fp.urf.s << ", ";
-                    ofile << fp.Decay.m << ", " << fp.Decay.s << ", " << fp.Decay.sc << ", ";
-                    ofile << fp.Diff.m << ", " << fp.Diff.s << ", " << fp.Diff.sc << ", ";
+                    if (iER == 1){
+                        bool tf = NPSATurf(S, StreamlineLength, velMult,  opt, fp);
+                    }
+                    else{
+                        fp.setVal(0.0);
+                    }
+
+                    ofile << std::setprecision(2) << std::fixed << fp.Age << std::setprecision(6) << std::scientific
+                          << ", " << fp.urf.m << ", " << fp.urf.s << ", " << fp.urf.err << ", ";
+                    ofile << fp.Decay.m << ", " << fp.Decay.s << ", " << fp.Decay.sc << ", " << fp.Decay.err << ", ";
+                    ofile << fp.Diff.m << ", " << fp.Diff.s << ", " << fp.Diff.sc << ", " << fp.Diff.err;
+                    if (i != 4){
+                        ofile << ", ";
+                    }
                     //AllPorFP.push_back(fp);
                     velMult = velMult + 1.0;
                 }
