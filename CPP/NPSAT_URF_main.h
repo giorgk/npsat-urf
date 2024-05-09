@@ -302,7 +302,7 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.urf.m = -88.0;
         fp.urf.s = -88.0;
         fp.urf.sc = 1.0;
-        fp.urf.err -88.0;
+        fp.urf.err = -88.0;
     }
 
     tf = fitLgnrm(DS_urfDecay,maxYPosurfDec, XurfDec);
