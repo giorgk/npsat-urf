@@ -90,12 +90,12 @@ int main(int argc, char *argv[]) {
                                 S.emplace_back(v, lenSplit);
                                 StreamlineLength = StreamlineLength + lenSplit;
                             }
-                            leftOverLen = 0;
+                            leftOverLen = 0.0;
                         }
                         else{
                             S.emplace_back(v, segLen);
                             StreamlineLength = StreamlineLength + segLen;
-                            leftOverLen = 0;
+                            leftOverLen = 0.0;
                         }
                     }
                     else{
@@ -134,6 +134,7 @@ int main(int argc, char *argv[]) {
                 ofile << std::endl;
 
                 CompleteStreamlineFound = false;
+                StreamlineLength = 0.0;
             }
         }
         ofile.close();
