@@ -47,8 +47,8 @@ int main(int argc, char *argv[]) {
         int cntStrml = 0;
         std::string er;
         trajP p;
-        //std::vector<trajP> S;
-        std::vector<segInfo> S;
+        //std::vector<trajP> strmlnSeg;
+        std::vector<segInfo> strmlnSeg;
         segInfo si;
         double StreamlineLength = 0;
         double ax, ay, az, bx, by, bz, v, segLen;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
                     inp >> Sid;
                     inp >> er;
                     iER = parseExitReason(er);
-                    S[S.size()-1].l = S[S.size()-1].l + leftOverLen;
+                    strmlnSeg[strmlnSeg.size() - 1].l = strmlnSeg[strmlnSeg.size() - 1].l + leftOverLen;
                     StreamlineLength = StreamlineLength + leftOverLen;
                     CompleteStreamlineFound = true;
                     bCalcLen = false;
@@ -87,13 +87,13 @@ int main(int argc, char *argv[]) {
                             int inSplits = static_cast<int>(nSplits);
                             double lenSplit = segLen/nSplits;
                             for (int i = 0; i < inSplits; ++i){
-                                S.emplace_back(v, lenSplit);
+                                strmlnSeg.emplace_back(v, lenSplit);
                                 StreamlineLength = StreamlineLength + lenSplit;
                             }
                             leftOverLen = 0.0;
                         }
                         else{
-                            S.emplace_back(v, segLen);
+                            strmlnSeg.emplace_back(v, segLen);
                             StreamlineLength = StreamlineLength + segLen;
                             leftOverLen = 0.0;
                         }
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
                 ofile << Eid << ", " << Sid << ", " << std::setprecision(2) << std::fixed << StreamlineLength << ", " << iER << ", ";
                 for (int i = 0; i < 5; ++i){
                     if (iER == 1){
-                        bool tf = NPSATurf(S, StreamlineLength, velMult,  opt, fp);
+                        bool tf = NPSATurf(strmlnSeg, StreamlineLength, velMult, opt, fp);
                     }
                     else{
                         fp.setVal(0.0);
@@ -135,6 +135,7 @@ int main(int argc, char *argv[]) {
 
                 CompleteStreamlineFound = false;
                 StreamlineLength = 0.0;
+                strmlnSeg.clear();
             }
         }
         ofile.close();
