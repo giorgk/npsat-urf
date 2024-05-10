@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
 
     std::string input_arg(argv[1]);
     if (input_arg.compare("-v") == 0){
-        std::cout << "version 1.0" << std::endl;
+        std::cout << "version 1.1" << std::endl;
         return 0;
     }
 
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
         outfile = opt.prefixOutput + "_" + std::to_string(opt.ProcId) + ".dat";
         std::cout << "Output file: " << outfile << std::endl;
         std::ofstream ofile(outfile.c_str());
-        ofile << "Eid, Sid, Len, ER";
+        ofile << "Eid, Sid, ER, p_cdsX, p_cdsY, p_cdsZ, v_cds, p_lndX, p_lndY, Len";
         for (int i = 1; i < 6;++i){
             ofile << ", Age" << i << ", mean" << i << ", std" << i << ", err" << i
                   << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i << ", errDc" << i
@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
         segInfo si;
         double StreamlineLength = 0;
         double ax, ay, az, bx, by, bz, v, segLen;
+        double p_lndX, p_lndY, p_cdsX, p_cdsY, p_cdsZ;
         bool CompleteStreamlineFound = false;
         double leftOverLen = 0.0;
         bool bCalcLen = false;
@@ -69,6 +70,8 @@ int main(int argc, char *argv[]) {
                     CompleteStreamlineFound = true;
                     bCalcLen = false;
                     leftOverLen = 0;
+                    p_lndX = ax;
+                    p_lndY = ay;
                 }
                 else{
                     Eid = tmpInt;
@@ -100,6 +103,9 @@ int main(int argc, char *argv[]) {
                     }
                     else{
                         bCalcLen = true;
+                        p_cdsX = bx;
+                        p_cdsY = by;
+                        p_cdsZ = bz;
                     }
                     ax = bx;
                     ay = by;
@@ -112,8 +118,13 @@ int main(int argc, char *argv[]) {
                 //std::vector<FittedParam> AllPorFP;
                 FittedParam fp;
                 double velMult = 1.0;
-                ofile << Eid << ", " << Sid << ", " << std::setprecision(2) << std::fixed << StreamlineLength << ", " << iER << ", ";
+                ofile << Eid << ", " << Sid << ", " << iER << ", "
+                      << std::setprecision(2) << std::fixed
+                      << p_cdsX << ", " << p_cdsY << ", " << p_cdsZ << ", "
+                      << std::setprecision(5) << strmlnSeg[0].v << ", " << std::setprecision(2)
+                      << p_lndX << ", " << p_lndY << ", " << StreamlineLength << ", " ;
                 for (int i = 0; i < 5; ++i){
+                    fp.reset();
                     if (iER == 1){
                         bool tf = NPSATurf(strmlnSeg, StreamlineLength, velMult, opt, fp);
                     }

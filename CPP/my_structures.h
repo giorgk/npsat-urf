@@ -75,6 +75,12 @@ struct ParamSet{
         sc = v;
         err = v;
     }
+    void reset(){
+        m = -99.0;
+        s = -99.0;
+        sc = -99.0;
+        err = -99.0;
+    }
 };
 
 struct FittedParam{
@@ -87,6 +93,13 @@ struct FittedParam{
         urf.setVal(v);
         Decay.setVal(v);
         Diff.setVal(v);
+    }
+    void reset(){
+        urf.reset();
+        Decay.reset();
+        Diff.reset();
+        Age = 0.0;
+        Len = 0.0;
     }
 };
 

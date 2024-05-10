@@ -178,7 +178,7 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
     }
     solverDecay.compute(KKDecay);
     if (solverDecay.info() != Eigen::Success){
-        fp.setVal(-77);
+        fp.setVal(-78);
         return false;
     }
 
@@ -204,12 +204,12 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
 
         C = solver.solve(RHS);
         if (solver.info() != Eigen::Success){
-            fp.setVal(-99);
+            fp.setVal(-88);
             return false;
         }
         CDecay = solverDecay.solve(RHSDecay);
         if (solverDecay.info() != Eigen::Success){
-            fp.setVal(-99);
+            fp.setVal(-89);
             return false;
         }
         //std::cout << "C:" << std::endl;
@@ -236,7 +236,7 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         }
     }
     if (bExceedMaxTime){
-        fp.setVal(-99);
+        fp.setVal(-66);
         return true;
     }
 
@@ -299,10 +299,10 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.urf.sc = 1.0;
     }
     else{
-        fp.urf.m = -88.0;
-        fp.urf.s = -88.0;
+        fp.urf.m = -55.0;
+        fp.urf.s = -55.0;
         fp.urf.sc = 1.0;
-        fp.urf.err = -88.0;
+        fp.urf.err = -55.0;
     }
 
     tf = fitLgnrm(DS_urfDecay,maxYPosurfDec, XurfDec);
@@ -313,10 +313,10 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.Decay.sc = scaleDecay;
     }
     else{
-        fp.Decay.m = -88.0;
-        fp.Decay.s = -88.0;
+        fp.Decay.m = -55.0;
+        fp.Decay.s = -55.0;
         fp.Decay.sc = scaleDecay;
-        fp.Decay.err = -88.0;
+        fp.Decay.err = -55.0;
     }
 
     tf = fitLgnrm(DS_urfDiff,maxYPosurfDiff, XurfDiff);
@@ -327,10 +327,10 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.Diff.sc = scaleDiff;
     }
     else{
-        fp.Diff.m = -88.0;
-        fp.Diff.s = -88.0;
+        fp.Diff.m = -55.0;
+        fp.Diff.s = -55.0;
         fp.Diff.sc = scaleDiff;
-        fp.Diff.err = -88.0;
+        fp.Diff.err = -55.0;
     }
 
     return true;
