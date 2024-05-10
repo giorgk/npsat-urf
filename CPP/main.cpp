@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <cmath>
+#include <chrono>
 
 #include "my_structures.h"
 #include "NPSAT_URF_main.h"
@@ -41,6 +42,9 @@ int main(int argc, char *argv[]) {
         }
         ofile << std::endl;
 
+        std::chrono::steady_clock::time_point beginTimeALL = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point beginTime = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point endTime1, endTime2;
 
         std::string line;
         int tmpInt, Eid, Sid, iER;
@@ -112,9 +116,10 @@ int main(int argc, char *argv[]) {
                     az = bz;
                 }
             }
+            endTime1 = std::chrono::steady_clock::now();
 
             if (CompleteStreamlineFound){
-                std::cout << Eid << " " << Sid << " " << ++cntStrml << std::endl;
+                std::cout << Eid << " " << Sid << " " << ++cntStrml << " [" << std::chrono::duration_cast<std::chrono::microseconds>(endTime1 - beginTime).count()/1000000.0;
                 //std::vector<FittedParam> AllPorFP;
                 FittedParam fp;
                 double velMult = 1.0;
@@ -144,11 +149,19 @@ int main(int argc, char *argv[]) {
                 }
                 ofile << std::endl;
 
+                endTime2 = std::chrono::steady_clock::now();
+
+                std::cout << ", " << std::chrono::duration_cast<std::chrono::microseconds>(endTime2 - beginTime).count()/1000000.0 << "]" << std::endl;
+
+                beginTime = std::chrono::steady_clock::now();
+
                 CompleteStreamlineFound = false;
                 StreamlineLength = 0.0;
                 strmlnSeg.clear();
             }
         }
+        std::chrono::steady_clock::time_point endTimeALL = std::chrono::steady_clock::now();
+        std::cout << "Done in " << std::chrono::duration_cast<std::chrono::microseconds>(endTimeALL - beginTimeALL).count()/1000000.0/60.0 << std::endl;
         ofile.close();
     }
 
