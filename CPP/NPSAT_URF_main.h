@@ -118,7 +118,7 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
     fp.Len = len;
     if (fp.Age < opt.skipAge){
         for (int i = 0; i < opt.skipAge; ++i){
-            double d =static_cast<double>(i);
+            double d = static_cast<double>(i);
             if (fp.Age <= d){
                 fp.setVal(-d);
                 return true;

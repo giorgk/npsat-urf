@@ -117,7 +117,7 @@ int parseExitReason(std::string t){
     else if (t.compare("MAX_INNER_ITER") == 0){
         return 4;
     }
-    else if (t.compare("STUCK") == 0){
+    else if (t == "STUCK"){
         return 5;
     }
     else if (t.compare("MAX_AGE") == 0){
