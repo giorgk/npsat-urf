@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
         std::cout << "Output file: " << outfile << std::endl;
         std::ofstream ofile(outfile.c_str());
         ofile << "Eid, Sid, ER, p_cdsX, p_cdsY, p_cdsZ, v_cds, p_lndX, p_lndY, Len";
-        for (int i = 1; i < 6;++i){
+        for (int i = opt.startPor; i <= opt.endPor;++i){
             ofile << ", Age" << i << ", mean" << i << ", std" << i << ", err" << i
                   << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i << ", errDc" << i
                   << ", meanDf" << i << ", stdDf" << i << ", ScaleDf" << i << ", errDf" << i;
@@ -122,13 +122,14 @@ int main(int argc, char *argv[]) {
                 std::cout << Eid << " " << Sid << " " << ++cntStrml << " [" << std::chrono::duration_cast<std::chrono::microseconds>(endTime1 - beginTime).count()/1000000.0;
                 //std::vector<FittedParam> AllPorFP;
                 FittedParam fp;
-                double velMult = 1.0;
+
                 ofile << Eid << ", " << Sid << ", " << iER << ", "
                       << std::setprecision(2) << std::fixed
                       << p_cdsX << ", " << p_cdsY << ", " << p_cdsZ << ", "
                       << std::setprecision(5) << strmlnSeg[0].v << ", " << std::setprecision(2)
                       << p_lndX << ", " << p_lndY << ", " << StreamlineLength << ", " ;
-                for (int i = 0; i < 5; ++i){
+                for (int i = opt.startPor; i <= opt.endPor; ++i){
+                    double velMult = static_cast<double>(i);
                     fp.reset();
                     if (iER == 1){
                         bool tf = NPSATurf(strmlnSeg, StreamlineLength, velMult, opt, fp);
@@ -141,11 +142,11 @@ int main(int argc, char *argv[]) {
                           << ", " << fp.urf.m << ", " << fp.urf.s << ", " << fp.urf.err << ", ";
                     ofile << fp.Decay.m << ", " << fp.Decay.s << ", " << fp.Decay.sc << ", " << fp.Decay.err << ", ";
                     ofile << fp.Diff.m << ", " << fp.Diff.s << ", " << fp.Diff.sc << ", " << fp.Diff.err;
-                    if (i != 4){
+                    if (i != opt.endPor){
                         ofile << ", ";
                     }
                     //AllPorFP.push_back(fp);
-                    velMult = velMult + 1.0;
+                    //velMult = velMult + 1.0;
                 }
                 ofile << std::endl;
 

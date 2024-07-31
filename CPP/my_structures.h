@@ -62,6 +62,9 @@ struct URFoptions{
     double wmega = 0.5;
     double URFtol = 0.99;
     int skipAge = 2;
+
+    int startPor = 1;
+    int endPor = 5;
 };
 
 struct ParamSet{

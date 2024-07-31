@@ -73,6 +73,14 @@ bool readOptionFile(URFoptions& opt){
                 inp >> opt.paddingZeros;
                 continue;
             }
+            if (propname.compare("startPor") == 0){
+                inp >> opt.startPor;
+                continue;
+            }
+            if (propname.compare("endPor") == 0){
+                inp >> opt.endPor;
+                continue;
+            }
             count++;
             if (count > 20){
                 break;
