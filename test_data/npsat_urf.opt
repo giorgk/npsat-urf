@@ -1,4 +1,4 @@
-prefix teststrmlinfit_
+prefix rch2000_VI_iter_
 paddingZeros 4
 suffix traj // No dot
 output_prefix outputName
@@ -11,3 +11,10 @@ TimeStep 365 // years
 maxTotalTime 2000 // years
 URFtol 0.99
 skipAge 3
+startPor 1
+endPor 3
+bIsGather 0
+calcDecay 0
+calcDiff 0
+halfTime 12.32
+

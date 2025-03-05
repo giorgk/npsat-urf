@@ -9,7 +9,7 @@
 
 bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& opt, FittedParam& fp){
 
-    double lambda = halfTime(12.32);
+    double lambda = halfTime(opt.halfTime);
     // This is the discretized streamline
     int nel = S.size();
 
@@ -77,8 +77,10 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
             DgloTri.emplace_back(ii, ii, D11);
             DdiagPrev = D22;
 
-            DgloTriDecay.emplace_back(ii, ii, D11dec);
-            DdiagPrevDecay = D22dec;
+            if (opt.calcDecay){
+                DgloTriDecay.emplace_back(ii, ii, D11dec);
+                DdiagPrevDecay = D22dec;
+            }
 
             MgloTri.emplace_back(ii, ii, A11);
             MdiagPrev = A22;
@@ -87,8 +89,10 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
             DgloTri.emplace_back(ii, ii, D11 + DdiagPrev);
             DgloTri.emplace_back(ii+1, ii+1, D22);
 
-            DgloTriDecay.emplace_back(ii, ii, D11dec + DdiagPrevDecay);
-            DgloTriDecay.emplace_back(ii+1, ii+1, D22dec);
+            if (opt.calcDecay){
+                DgloTriDecay.emplace_back(ii, ii, D11dec + DdiagPrevDecay);
+                DgloTriDecay.emplace_back(ii+1, ii+1, D22dec);
+            }
 
             MgloTri.emplace_back(ii, ii, A11 + MdiagPrev);
             MgloTri.emplace_back(ii+1, ii+1, A22);
@@ -97,8 +101,10 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
             DgloTri.emplace_back(ii, ii, D11 + DdiagPrev);
             DdiagPrev = D22;
 
-            DgloTriDecay.emplace_back(ii, ii, D11 + DdiagPrevDecay);
-            DdiagPrevDecay = D22dec;
+            if (opt.calcDecay){
+                DgloTriDecay.emplace_back(ii, ii, D11 + DdiagPrevDecay);
+                DdiagPrevDecay = D22dec;
+            }
 
             MgloTri.emplace_back(ii, ii, A11 + MdiagPrev);
             MdiagPrev = A22;
@@ -106,8 +112,10 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         DgloTri.emplace_back(ii, ii+1, D12);
         DgloTri.emplace_back(ii+1, ii, D21);
 
-        DgloTriDecay.emplace_back(ii, ii+1, D12dec);
-        DgloTriDecay.emplace_back(ii+1, ii, D21dec);
+        if (opt.calcDecay){
+            DgloTriDecay.emplace_back(ii, ii+1, D12dec);
+            DgloTriDecay.emplace_back(ii+1, ii, D21dec);
+        }
 
         MgloTri.emplace_back(ii, ii+1, A12);
         MgloTri.emplace_back(ii+1, ii, A21);
@@ -129,7 +137,9 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
 
 
     Dglo.setFromTriplets(DgloTri.begin(), DgloTri.end());
-    DgloDecay.setFromTriplets(DgloTriDecay.begin(), DgloTriDecay.end());
+    if (opt.calcDecay){
+        DgloDecay.setFromTriplets(DgloTriDecay.begin(), DgloTriDecay.end());
+    }
     Mglo.setFromTriplets(MgloTri.begin(), MgloTri.end());
     //std::cout << Dglo << std::endl;
     //std::cout << Mglo << std::endl;
@@ -138,23 +148,38 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
     eigenMat AgloDecay, BgloDecay, BgloRedDecay, KKDecay, GGDecay;
 
     Aglo = Mglo+opt.wmega*opt.TimeStep*Dglo;
-    AgloDecay = Mglo+opt.wmega*opt.TimeStep*DgloDecay;
+    if (opt.calcDecay){
+        AgloDecay = Mglo+opt.wmega*opt.TimeStep*DgloDecay;
+    }
+
 
     //std::cout << Aglo << std::endl;
     Bglo = (Mglo-(1-opt.wmega)*opt.TimeStep*Dglo);
-    BgloDecay = (Mglo-(1-opt.wmega)*opt.TimeStep*DgloDecay);
+    if (opt.calcDecay){
+        BgloDecay = (Mglo-(1-opt.wmega)*opt.TimeStep*DgloDecay);
+    }
+
 
     //std::cout << Bglo << std::endl;
     BgloRed = Bglo.block(1,0,nel,nel+1);
-    BgloRedDecay = BgloDecay.block(1,0,nel,nel+1);
+    if (opt.calcDecay){
+        BgloRedDecay = BgloDecay.block(1,0,nel,nel+1);
+    }
+
     //std::cout << BgloRed << std::endl;
 
     KK = Aglo.block(1,1,nel,nel);
-    KKDecay = AgloDecay.block(1,1,nel,nel);
+    if (opt.calcDecay){
+        KKDecay = AgloDecay.block(1,1,nel,nel);
+    }
+
     //std::cout << KK << std::endl;
 
     GG = Aglo.block(1,0,nel,1);
-    GGDecay = AgloDecay.block(1,0,nel,1);
+    if (opt.calcDecay){
+        GGDecay = AgloDecay.block(1,0,nel,1);
+    }
+
     //std::cout << GG << std::endl;
 
     Eigen::VectorXd Cprev(nel+1);
@@ -176,10 +201,12 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.setVal(-77);
         return false;
     }
-    solverDecay.compute(KKDecay);
-    if (solverDecay.info() != Eigen::Success){
-        fp.setVal(-78);
-        return false;
+    if (opt.calcDecay){
+        solverDecay.compute(KKDecay);
+        if (solverDecay.info() != Eigen::Success){
+            fp.setVal(-78);
+            return false;
+        }
     }
 
     Eigen::VectorXd C(nel);
@@ -197,25 +224,37 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
     while(true){
 
         RHS2 = BgloRed*Cprev;
-        RHS2Decay = BgloRedDecay*CprevDecay;
+        if (opt.calcDecay){
+            RHS2Decay = BgloRedDecay*CprevDecay;
+        }
+
         //std::cout << RHS2 << std::endl;
         RHS = RHS2 - GG;
-        RHSDecay = RHS2Decay - GGDecay;
+        if (opt.calcDecay){
+            RHSDecay = RHS2Decay - GGDecay;
+        }
+
 
         C = solver.solve(RHS);
         if (solver.info() != Eigen::Success){
             fp.setVal(-88);
             return false;
         }
-        CDecay = solverDecay.solve(RHSDecay);
-        if (solverDecay.info() != Eigen::Success){
-            fp.setVal(-89);
-            return false;
+        if (opt.calcDecay){
+            CDecay = solverDecay.solve(RHSDecay);
+            if (solverDecay.info() != Eigen::Success){
+                fp.setVal(-89);
+                return false;
+            }
         }
+
         //std::cout << "C:" << std::endl;
         //std::cout << C << std::endl;
         Cprev.segment(1,nel) = C;
-        CprevDecay.segment(1,nel) = CDecay;
+        if (opt.calcDecay){
+            CprevDecay.segment(1,nel) = CDecay;
+        }
+
         //std::cout << "Cprev:" << std::endl;
         //std::cout << Cprev << std::endl;
         //std::cout << Cprev.size() << std::endl;
@@ -223,7 +262,10 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         //std::cout << URF.size() << std::endl;
 
         unitBTC.push_back(Cprev(nel));
-        unitBTCDecay.push_back(CprevDecay(nel));
+        if (opt.calcDecay){
+            unitBTCDecay.push_back(CprevDecay(nel));
+        }
+
 
         //std::cout << Cprev(nel) << " " << CprevDecay(nel) << std::endl;
         if (Cprev(nel) > opt.URFtol){
@@ -245,9 +287,14 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
     data_samples DS_urf, DS_urfDecay, DS_urfDiff;
     input_vector input;
     double x = 1;
-    double urf_val, urf_dec_val, urf_diff_val;
-    double scaleDecay = 1/unitBTCDecay.back();
-    double scaleDiff = 1/(unitBTC.back() - unitBTCDecay.back());
+    double urf_val, urf_dec_val, urf_diff_val, scaleDecay, scaleDiff;
+    if (opt.calcDecay){
+        scaleDecay = 1/unitBTCDecay.back();
+    }
+
+    if (opt.calcDiff){
+        scaleDiff = 1/(unitBTC.back() - unitBTCDecay.back());
+    }
     double maxYurf = 0.0;
     double maxYurfDec = 0.0;
     double maxYurfDiff = 0.0;
@@ -258,34 +305,51 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         input(0) = x;
         if (i == 0){
             urf_val = unitBTC[0];
-            urf_dec_val = unitBTCDecay[0];
-            urf_diff_val = urf_val - urf_dec_val;
+            if (opt.calcDecay){
+                urf_dec_val = unitBTCDecay[0];
+            }
+            if (opt.calcDiff){
+                urf_diff_val = urf_val - urf_dec_val;
+            }
         }
         else{
             urf_val = unitBTC[i] - unitBTC[i-1];
-            urf_dec_val = unitBTCDecay[i] - unitBTCDecay[i-1];
-            urf_diff_val = urf_val - urf_dec_val;
+            if (opt.calcDecay){
+                urf_dec_val = unitBTCDecay[i] - unitBTCDecay[i-1];
+            }
+            if (opt.calcDiff){
+                urf_diff_val = urf_val - urf_dec_val;
+            }
         }
         if (urf_val > maxYurf){
             maxYurf = urf_val;
             maxYPosurf = x;
         }
-        if (urf_dec_val > maxYurfDec){
-            maxYurfDec = urf_dec_val;
-            maxYPosurfDec = x;
+        if (opt.calcDecay){
+            if (urf_dec_val > maxYurfDec){
+                maxYurfDec = urf_dec_val;
+                maxYPosurfDec = x;
+            }
         }
-        if (urf_diff_val > maxYurfDiff){
-            maxYurfDiff = urf_diff_val;
-            maxYPosurfDiff = x;
+
+        if (opt.calcDiff){
+            if (urf_diff_val > maxYurfDiff){
+                maxYurfDiff = urf_diff_val;
+                maxYPosurfDiff = x;
+            }
         }
+
 
         //std::cout << urf_val << " " << urf_dec_val << " " << urf_dec_val*scaleDecay << " "
         //          << urf_diff_val << " " << urf_diff_val*scaleDiff << std::endl;
 
         DS_urf.emplace_back(input, urf_val);
-        DS_urfDecay.emplace_back(input, urf_dec_val*scaleDecay);
-        DS_urfDiff.emplace_back(input, urf_diff_val*scaleDiff);
-
+        if (opt.calcDecay){
+            DS_urfDecay.emplace_back(input, urf_dec_val*scaleDecay);
+        }
+        if (opt.calcDiff){
+            DS_urfDiff.emplace_back(input, urf_diff_val*scaleDiff);
+        }
         x = x + 1.0;
     }
 
@@ -305,32 +369,36 @@ bool NPSATurf(std::vector<segInfo>& S, double SLen, double velMult, URFoptions& 
         fp.urf.err = -55.0;
     }
 
-    tf = fitLgnrm(DS_urfDecay,maxYPosurfDec, XurfDec);
-    if (tf){
-        fp.Decay.err = fitError(DS_urfDecay, XurfDec);
-        fp.Decay.m = XurfDec(0,0);
-        fp.Decay.s = XurfDec(1,0);
-        fp.Decay.sc = scaleDecay;
-    }
-    else{
-        fp.Decay.m = -55.0;
-        fp.Decay.s = -55.0;
-        fp.Decay.sc = scaleDecay;
-        fp.Decay.err = -55.0;
+    if (opt.calcDecay){
+        tf = fitLgnrm(DS_urfDecay,maxYPosurfDec, XurfDec);
+        if (tf){
+            fp.Decay.err = fitError(DS_urfDecay, XurfDec);
+            fp.Decay.m = XurfDec(0,0);
+            fp.Decay.s = XurfDec(1,0);
+            fp.Decay.sc = scaleDecay;
+        }
+        else{
+            fp.Decay.m = -55.0;
+            fp.Decay.s = -55.0;
+            fp.Decay.sc = scaleDecay;
+            fp.Decay.err = -55.0;
+        }
     }
 
-    tf = fitLgnrm(DS_urfDiff,maxYPosurfDiff, XurfDiff);
-    if (tf){
-        fp.Diff.err = fitError(DS_urfDiff, XurfDiff);
-        fp.Diff.m = XurfDiff(0,0);
-        fp.Diff.s = XurfDiff(1,0);
-        fp.Diff.sc = scaleDiff;
-    }
-    else{
-        fp.Diff.m = -55.0;
-        fp.Diff.s = -55.0;
-        fp.Diff.sc = scaleDiff;
-        fp.Diff.err = -55.0;
+    if (opt.calcDiff){
+        tf = fitLgnrm(DS_urfDiff,maxYPosurfDiff, XurfDiff);
+        if (tf){
+            fp.Diff.err = fitError(DS_urfDiff, XurfDiff);
+            fp.Diff.m = XurfDiff(0,0);
+            fp.Diff.s = XurfDiff(1,0);
+            fp.Diff.sc = scaleDiff;
+        }
+        else{
+            fp.Diff.m = -55.0;
+            fp.Diff.s = -55.0;
+            fp.Diff.sc = scaleDiff;
+            fp.Diff.err = -55.0;
+        }
     }
 
     return true;

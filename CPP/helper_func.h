@@ -87,17 +87,39 @@ bool readOptionFile(URFoptions& opt){
                 opt.bIsGather = isvec != 0;
                 continue;
             }
+            if (propname.compare("calcDecay") == 0){
+                int tf;
+                inp >> tf;
+                opt.calcDecay = tf != 0;
+                continue;
+            }
+
+            if (propname.compare("calcDecay") == 0){
+                int tf;
+                inp >> tf;
+                opt.calcDiff = tf != 0;
+                continue;
+            }
+            if (propname.compare("halfTime") == 0){
+                inp >> opt.halfTime;
+                continue;
+            }
+
             count++;
-            if (count > 20){
+            if (count > 40){
                 break;
             }
+        }
+
+        if (!opt.calcDecay){
+            opt.calcDiff = false;
         }
         return true;
     }
 
 }
 
-double halfTime(double val){
+double halfTime(double val = 12.32){
     return std::log(2.0)/(val*365.0);
 }
 

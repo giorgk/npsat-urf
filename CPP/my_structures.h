@@ -62,10 +62,13 @@ struct URFoptions{
     double wmega = 0.5;
     double URFtol = 0.99;
     int skipAge = 2;
+    double halfTime = 12.32;
 
     int startPor = 1;
     int endPor = 5;
     bool bIsGather = false;
+    bool calcDecay = false;
+    bool calcDiff = false;
 };
 
 struct ParamSet{

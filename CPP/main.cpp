@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     std::string input_arg(argv[1]);
     if (input_arg.compare("-v") == 0){
-        std::cout << "version 1.1" << std::endl;
+        std::cout << "version 1.2" << std::endl;
         return 0;
     }
 
@@ -36,9 +36,13 @@ int main(int argc, char *argv[]) {
         std::ofstream ofile(outfile.c_str());
         ofile << "Eid, Sid, ER, p_cdsX, p_cdsY, p_cdsZ, v_cds, p_lndX, p_lndY, Len";
         for (int i = opt.startPor; i <= opt.endPor;++i){
-            ofile << ", Age" << i << ", mean" << i << ", std" << i << ", err" << i
-                  << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i << ", errDc" << i
-                  << ", meanDf" << i << ", stdDf" << i << ", ScaleDf" << i << ", errDf" << i;
+            ofile << ", Age" << i << ", mean" << i << ", std" << i << ", err" << i;
+            if (opt.calcDecay){
+                ofile << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i << ", errDc" << i;
+            }
+            if (opt.calcDiff){
+                ofile << ", meanDf" << i << ", stdDf" << i << ", ScaleDf" << i << ", errDf" << i;
+            }
         }
         ofile << std::endl;
 
@@ -78,7 +82,7 @@ int main(int argc, char *argv[]) {
                     p_lndY = ay;
                 }
                 else{
-                    if (opt.bIsGather){
+                    if (!opt.bIsGather){
                         inp >> Eid;
                     }
                     else{
@@ -88,7 +92,7 @@ int main(int argc, char *argv[]) {
                     inp >> bx;
                     inp >> by;
                     inp >> bz;
-                    if (opt.bIsGather){
+                    if (!opt.bIsGather){
                         double vx, vy, vz;
                         inp >> vx;
                         inp >> vy;
@@ -154,9 +158,13 @@ int main(int argc, char *argv[]) {
                     }
 
                     ofile << std::setprecision(2) << std::fixed << fp.Age << std::setprecision(6) << std::scientific
-                          << ", " << fp.urf.m << ", " << fp.urf.s << ", " << fp.urf.err << ", ";
-                    ofile << fp.Decay.m << ", " << fp.Decay.s << ", " << fp.Decay.sc << ", " << fp.Decay.err << ", ";
-                    ofile << fp.Diff.m << ", " << fp.Diff.s << ", " << fp.Diff.sc << ", " << fp.Diff.err;
+                          << ", " << fp.urf.m << ", " << fp.urf.s << ", " << fp.urf.err;
+                    if (opt.calcDecay){
+                        ofile << ", " << fp.Decay.m << ", " << fp.Decay.s << ", " << fp.Decay.sc << ", " << fp.Decay.err;
+                    }
+                    if (opt.calcDiff){
+                        ofile << ", " << fp.Diff.m << ", " << fp.Diff.s << ", " << fp.Diff.sc << ", " << fp.Diff.err;
+                    }
                     if (i != opt.endPor){
                         ofile << ", ";
                     }
