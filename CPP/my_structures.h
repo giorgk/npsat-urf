@@ -65,6 +65,7 @@ struct URFoptions{
 
     int startPor = 1;
     int endPor = 5;
+    bool bIsGather = false;
 };
 
 struct ParamSet{

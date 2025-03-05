@@ -81,6 +81,12 @@ bool readOptionFile(URFoptions& opt){
                 inp >> opt.endPor;
                 continue;
             }
+            if (propname.compare("bIsGather") == 0){
+                int isvec;
+                inp >> isvec;
+                opt.bIsGather = isvec != 0;
+                continue;
+            }
             count++;
             if (count > 20){
                 break;

@@ -78,12 +78,27 @@ int main(int argc, char *argv[]) {
                     p_lndY = ay;
                 }
                 else{
-                    Eid = tmpInt;
+                    if (opt.bIsGather){
+                        inp >> Eid;
+                    }
+                    else{
+                        Eid = tmpInt;
+                    }
                     inp >> Sid;
                     inp >> bx;
                     inp >> by;
                     inp >> bz;
-                    inp >> v;
+                    if (opt.bIsGather){
+                        double vx, vy, vz;
+                        inp >> vx;
+                        inp >> vy;
+                        inp >> vz;
+                        v = std::sqrt(vx*vx + vy*vy + vz*vz);
+                    }
+                    else{
+                        inp >> v;
+                    }
+
                     if (bCalcLen){
                         segLen = std::sqrt((bx - ax)*(bx - ax) + (by - ay)*(by - ay) + (bz - az)*(bz - az)) + leftOverLen;
                         if (segLen < opt.minElemSize){
