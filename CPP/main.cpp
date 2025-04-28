@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     std::string input_arg(argv[1]);
     if (input_arg.compare("-v") == 0){
-        std::cout << "version 1.2.1" << std::endl;
+        std::cout << "version 1.2.2" << std::endl;
         return 0;
     }
 
