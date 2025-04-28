@@ -35,13 +35,16 @@ int main(int argc, char *argv[]) {
         std::cout << "Output file: " << outfile << std::endl;
         std::ofstream ofile(outfile.c_str());
         ofile << "Eid, Sid, ER, p_cdsX, p_cdsY, p_cdsZ, v_cds, p_lndX, p_lndY, Len";
-        for (int i = opt.por.startValue; i <= opt.por.endValue; ++opt.por.interval){
+        for (int i = opt.por.startValue; i <= opt.por.endValue; i = i + opt.por.interval){
             ofile << ", Age" << i << ", mean" << i << ", std" << i << ", err" << i;
             if (opt.calcDecay){
                 ofile << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i << ", errDc" << i;
             }
             if (opt.calcDiff){
                 ofile << ", meanDf" << i << ", stdDf" << i << ", ScaleDf" << i << ", errDf" << i;
+            }
+            if ( i > 20){
+                break;
             }
         }
         ofile << std::endl;
