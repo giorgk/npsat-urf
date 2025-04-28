@@ -74,11 +74,15 @@ bool readOptionFile(URFoptions& opt){
                 continue;
             }
             if (propname.compare("startPor") == 0){
-                inp >> opt.startPor;
+                inp >> opt.por.startValue;
                 continue;
             }
             if (propname.compare("endPor") == 0){
-                inp >> opt.endPor;
+                inp >> opt.por.endValue;
+                continue;
+            }
+            if (propname.compare("intervPor") == 0){
+                inp >> opt.por.interval;
                 continue;
             }
             if (propname.compare("bIsGather") == 0){

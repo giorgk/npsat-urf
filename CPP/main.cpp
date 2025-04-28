@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
         std::cout << "Output file: " << outfile << std::endl;
         std::ofstream ofile(outfile.c_str());
         ofile << "Eid, Sid, ER, p_cdsX, p_cdsY, p_cdsZ, v_cds, p_lndX, p_lndY, Len";
-        for (int i = opt.startPor; i <= opt.endPor;++i){
+        for (int i = opt.por.startValue; i <= opt.por.endValue; ++opt.por.interval){
             ofile << ", Age" << i << ", mean" << i << ", std" << i << ", err" << i;
             if (opt.calcDecay){
                 ofile << ", meanDc" << i << ", stdDc" << i << ", ScaleDc" << i << ", errDc" << i;
@@ -147,8 +147,8 @@ int main(int argc, char *argv[]) {
                       << p_cdsX << ", " << p_cdsY << ", " << p_cdsZ << ", "
                       << std::setprecision(5) << strmlnSeg[0].v << ", " << std::setprecision(2)
                       << p_lndX << ", " << p_lndY << ", " << StreamlineLength << ", " ;
-                for (int i = opt.startPor; i <= opt.endPor; ++i){
-                    double velMult = static_cast<double>(i);
+                for (int i = opt.por.startValue; i <= opt.por.endValue; ++opt.por.interval){
+                    double velMult = static_cast<double>(i)/10.0;
                     fp.reset();
                     if (iER == 1){
                         bool tf = NPSATurf(strmlnSeg, StreamlineLength, velMult, opt, fp);
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
                     if (opt.calcDiff){
                         ofile << ", " << fp.Diff.m << ", " << fp.Diff.s << ", " << fp.Diff.sc << ", " << fp.Diff.err;
                     }
-                    if (i != opt.endPor){
+                    if (i != opt.por.endValue){
                         ofile << ", ";
                     }
                     //AllPorFP.push_back(fp);

@@ -13,6 +13,7 @@ URFtol 0.99
 skipAge 3
 startPor 1
 endPor 3
+intervPor 1
 bIsGather 0
 calcDecay 0
 calcDiff 0

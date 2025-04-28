@@ -41,6 +41,12 @@ struct segInfo{
     double l = 0;
 };
 
+struct PorosityOptions{
+    int startValue = 10;
+    int endValue = 60;
+    int interval = 10;
+};
+
 struct URFoptions{
     std::string prefixInput;
     std::string suffixInput;
@@ -64,8 +70,8 @@ struct URFoptions{
     int skipAge = 2;
     double halfTime = 12.32;
 
-    int startPor = 1;
-    int endPor = 5;
+    PorosityOptions por;
+
     bool bIsGather = false;
     bool calcDecay = false;
     bool calcDiff = false;
