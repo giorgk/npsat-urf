@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     std::string input_arg(argv[1]);
     if (input_arg.compare("-v") == 0){
-        std::cout << "version 1.2.2" << std::endl;
+        std::cout << "version 1.2.3" << std::endl;
         return 0;
     }
 
@@ -43,11 +43,13 @@ int main(int argc, char *argv[]) {
             if (opt.calcDiff){
                 ofile << ", meanDf" << i << ", stdDf" << i << ", ScaleDf" << i << ", errDf" << i;
             }
-            if ( i > 20){
+            if ( i > 200){
                 break;
             }
         }
         ofile << std::endl;
+        std::cout << "Output file header prepared" << std::endl;
+        return 0;
 
         std::chrono::steady_clock::time_point beginTimeALL = std::chrono::steady_clock::now();
         std::chrono::steady_clock::time_point beginTime = std::chrono::steady_clock::now();
@@ -150,7 +152,7 @@ int main(int argc, char *argv[]) {
                       << p_cdsX << ", " << p_cdsY << ", " << p_cdsZ << ", "
                       << std::setprecision(5) << strmlnSeg[0].v << ", " << std::setprecision(2)
                       << p_lndX << ", " << p_lndY << ", " << StreamlineLength << ", " ;
-                for (int i = opt.por.startValue; i <= opt.por.endValue; ++opt.por.interval){
+                for (int i = opt.por.startValue; i <= opt.por.endValue; i = i + opt.por.interval){
                     double velMult = static_cast<double>(i)/10.0;
                     fp.reset();
                     if (iER == 1){
