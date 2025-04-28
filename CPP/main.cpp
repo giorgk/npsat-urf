@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     std::string input_arg(argv[1]);
     if (input_arg.compare("-v") == 0){
-        std::cout << "version 1.2.3" << std::endl;
+        std::cout << "version 1.2.4" << std::endl;
         return 0;
     }
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
         }
         ofile << std::endl;
         std::cout << "Output file header prepared" << std::endl;
-        return 0;
+        //return 0;
 
         std::chrono::steady_clock::time_point beginTimeALL = std::chrono::steady_clock::now();
         std::chrono::steady_clock::time_point beginTime = std::chrono::steady_clock::now();
