@@ -16,3 +16,8 @@
 !/CPP/CMakeLists.txt
 !/CPP/*.cpp
 !/CPP/*.h
+
+!/RUST
+/RUST/*
+!RUST/Cargo.toml
+!/RUST/src
