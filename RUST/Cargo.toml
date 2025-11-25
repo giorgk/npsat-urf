@@ -8,3 +8,4 @@ name = "npsat-urf"
 path = "src/main.rs"
 
 [dependencies]
+configparser = "3.1.0"
