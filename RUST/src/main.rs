@@ -4,6 +4,14 @@ mod input_util;
 use std::process;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    dbg!(args.len());
+    if (args.len() < 2){
+        panic!("Not enough arguments");
+    }
+    else{
+        let query = &args[1];
+        println!("Input file {query}");
+    }
     dbg!(&args);
     println!("len = {}", args.len());
     // let query = &args[1];
