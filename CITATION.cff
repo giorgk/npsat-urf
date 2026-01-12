@@ -8,7 +8,7 @@ authors:
   given-names: "Thomas"
   orcid: "https://orcid.org/0000-0001-8526-3843"
 title: "NPSAT Unit Response Function Calculator"
-version: "0.0.1"
-doi: "10.5281/zenodo.1234"
+version: 0.0.1
+doi: 
 date-released: 2025-11-25
 url: "https://github.com/giorgk/npsat-urf"
