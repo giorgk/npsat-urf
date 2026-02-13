@@ -109,6 +109,11 @@ bool readOptionFile(URFoptions& opt){
                 continue;
             }
 
+            if (propname.compare("er_to_run") == 0){
+                inp >> opt.er_to_run;
+                continue;
+            }
+
             count++;
             if (count > 40){
                 break;

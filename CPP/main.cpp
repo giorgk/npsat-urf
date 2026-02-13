@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     std::string input_arg(argv[1]);
     if (input_arg.compare("-v") == 0){
-        std::cout << "version 1.2.4" << std::endl;
+        std::cout << "version 1.2.5" << std::endl;
         return 0;
     }
 
@@ -155,12 +155,18 @@ int main(int argc, char *argv[]) {
                 for (int i = opt.por.startValue; i <= opt.por.endValue; i = i + opt.por.interval){
                     double velMult = static_cast<double>(i)/10.0;
                     fp.reset();
-                    if (iER == 1){
+                    if (opt.er_to_run < 0) {
                         bool tf = NPSATurf(strmlnSeg, StreamlineLength, velMult, opt, fp);
                     }
-                    else{
-                        fp.setVal(0.0);
+                    else {
+                        if (iER == opt.er_to_run){
+                            bool tf = NPSATurf(strmlnSeg, StreamlineLength, velMult, opt, fp);
+                        }
+                        else{
+                            fp.setVal(0.0);
+                        }
                     }
+
 
                     ofile << std::setprecision(2) << std::fixed << fp.Age << std::setprecision(6) << std::scientific
                           << ", " << fp.urf.m << ", " << fp.urf.s << ", " << fp.urf.err;

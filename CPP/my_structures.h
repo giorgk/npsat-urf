@@ -75,6 +75,7 @@ struct URFoptions{
     bool bIsGather = false;
     bool calcDecay = false;
     bool calcDiff = false;
+    int er_to_run = 1;
 };
 
 struct ParamSet{
