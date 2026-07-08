@@ -7,6 +7,10 @@
 
 #include "my_structures.h"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 
 bool readOptionFile(URFoptions& opt){
     const std::string optfile = "npsat_urf.opt";
@@ -153,7 +157,7 @@ double lgnrmlFunction(const input_vector& input, const parameter_vector& params)
      */
 
     const double logx = std::log(x);
-    const double nominator = dlib::sqrt_2 * exp( -((a - logx)*(a - logx))/(2.0*b*b) );
+    const double nominator = sqrt2 * exp( -((a - logx)*(a - logx))/(2.0*b*b) );
     const double denominator = b * x * sqrtpi * 2.0;
     double out = nominator/denominator;
     return out;
@@ -197,7 +201,7 @@ parameter_vector residual_derivative(const std::pair<input_vector, double>& data
     const double logx = std::log(x);
     const double a_logxsq = (a - logx)*(a - logx);
     const double sqb = b*b;
-    const double exp_fraction = dlib::sqrt_2 * std::exp( -a_logxsq/(2*sqb));
+    const double exp_fraction = sqrt2 * std::exp( -a_logxsq/(2*sqb));
 
     const double numeratorA = exp_fraction * (2 * a - 2 * logx);
     const double denominatorA = b*sqb * x * sqrtpi * 4;
@@ -213,24 +217,66 @@ parameter_vector residual_derivative(const std::pair<input_vector, double>& data
 
 bool fitLgnrm(data_samples& DS, double& maxYpos, parameter_vector& x){
     parameter_vector params;
-    params(0) = log(maxYpos);
-    params(1) = 0.3;
-    try{
-        x = params;
-        dlib::solve_least_squares_lm(dlib::objective_delta_stop_strategy(1e-7),
-                               residual,
-                               residual_derivative,
-                               DS,
-                               x);
-        //std::cout << dlib::trans(x) << "| " << length(x - params) << std::endl;
-
-        return true;
-    }
-    catch (std::exception& e)
-    {
-        std::cout << e.what() << std::endl;
+    if (DS.empty() || maxYpos <= 0.0){
         return false;
     }
+
+    params(0) = log(maxYpos);
+    params(1) = 0.3;
+    x = params;
+
+    double lambda = 1e-3;
+    double prevObjective = std::numeric_limits<double>::max();
+    const int maxIterations = 200;
+    const double objectiveTol = 1e-7;
+    const double minStd = 1e-8;
+
+    for (int iter = 0; iter < maxIterations; ++iter){
+        Eigen::Matrix2d jtj = Eigen::Matrix2d::Zero();
+        Eigen::Vector2d jtr = Eigen::Vector2d::Zero();
+        double objective = 0.0;
+
+        for (unsigned int i = 0; i < DS.size(); ++i){
+            const double r = residual(DS[i], x);
+            const parameter_vector jac = residual_derivative(DS[i], x);
+            jtj += jac * jac.transpose();
+            jtr += jac * r;
+            objective += r*r;
+        }
+
+        if (std::abs(prevObjective - objective) < objectiveTol){
+            return true;
+        }
+
+        Eigen::Matrix2d damped = jtj + lambda * Eigen::Matrix2d::Identity();
+        Eigen::Vector2d step = damped.ldlt().solve(-jtr);
+        if (!std::isfinite(step(0)) || !std::isfinite(step(1))){
+            return false;
+        }
+
+        parameter_vector candidate = x + step;
+        if (candidate(1) <= minStd){
+            candidate(1) = minStd;
+        }
+
+        double candidateObjective = 0.0;
+        for (unsigned int i = 0; i < DS.size(); ++i){
+            const double r = residual(DS[i], candidate);
+            candidateObjective += r*r;
+        }
+
+        if (candidateObjective < objective){
+            x = candidate;
+            prevObjective = objective;
+            lambda = std::max(lambda * 0.1, 1e-12);
+        }
+        else{
+            prevObjective = std::numeric_limits<double>::max();
+            lambda = std::min(lambda * 10.0, 1e12);
+        }
+    }
+
+    return true;
 }
 
 double fitError(data_samples& DS, parameter_vector& params){

@@ -5,20 +5,25 @@
 #ifndef NPSAT_URF_MY_STRUCTURES_H
 #define NPSAT_URF_MY_STRUCTURES_H
 
+#include <cmath>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include <dlib/optimization.h>
 
 //Eigen definitions
 typedef Eigen::SparseMatrix<double> eigenMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> eigenTriplet;
 
-//dlib definitions
-typedef dlib::matrix<double,1,1> input_vector;
-typedef dlib::matrix<double,2,1> parameter_vector;
+//Fitting definitions
+typedef Eigen::Matrix<double,1,1> input_vector;
+typedef Eigen::Matrix<double,2,1> parameter_vector;
 typedef std::vector<std::pair<input_vector, double> > data_samples;
 
-//const double sqrt2pi = std::sqrt(2*dlib::pi);
-const double sqrtpi = std::sqrt(dlib::pi);
+const double sqrt2 = std::sqrt(2.0);
+const double sqrtpi = std::sqrt(std::acos(-1.0));
 
 struct trajP{
     double x = 0.0;

@@ -1,14 +1,16 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.5)
 project(NPSAT_URF)
 
-#set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-#find_package(Eigen3 REQUIRED)
-
-add_subdirectory(${DLIB_PATH} dlib_build)
-include_directories(${EIGEN_PATH})
+if(DEFINED EIGEN_PATH AND EXISTS "${EIGEN_PATH}/Eigen/Sparse")
+    include_directories(${EIGEN_PATH})
+elseif(EXISTS "/usr/include/eigen3/Eigen/Sparse")
+    include_directories(/usr/include/eigen3)
+else()
+    message(FATAL_ERROR "Eigen headers were not found. Install Eigen or configure with -DEIGEN_PATH=/path/to/eigen3")
+endif()
 
 add_executable(NPSAT_URF main.cpp)
-
-#target_link_libraries(NPSAT_URF Eigen3::Eigen) # dlib::dlib
-target_link_libraries(NPSAT_URF dlib::dlib)
