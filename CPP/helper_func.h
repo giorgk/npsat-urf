@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <limits>
 
 
@@ -35,6 +36,21 @@ bool readOptionFile(URFoptions& opt){
             }
             if (propname.compare("output_prefix") == 0){
                 inp >> opt.prefixOutput;
+                continue;
+            }
+            if (propname.compare("discard_prefix") == 0 ||
+                propname.compare("discarded_prefix") == 0 ||
+                propname.compare("discard_output_prefix") == 0){
+                inp >> opt.prefixDiscard;
+                continue;
+            }
+            if (propname.compare("simplified_prefix") == 0 ||
+                propname.compare("simplify_prefix") == 0){
+                inp >> opt.prefixSimplified;
+                continue;
+            }
+            if (propname.compare("file_type") == 0){
+                inp >> opt.fileType;
                 continue;
             }
             if (propname.compare("alpha") == 0){
@@ -102,10 +118,22 @@ bool readOptionFile(URFoptions& opt){
                 continue;
             }
 
-            if (propname.compare("calcDecay") == 0){
+            if (propname.compare("calcDiff") == 0){
                 int tf;
                 inp >> tf;
                 opt.calcDiff = tf != 0;
+                continue;
+            }
+            if (propname.compare("simplify_streamline") == 0 ||
+                propname.compare("simplifyStreamline") == 0){
+                int tf;
+                inp >> tf;
+                opt.simplifyStreamline = tf != 0;
+                continue;
+            }
+            if (propname.compare("simplify_tolerance") == 0 ||
+                propname.compare("simplification_tolerance") == 0){
+                inp >> opt.simplifyTolerance;
                 continue;
             }
             if (propname.compare("halfTime") == 0){

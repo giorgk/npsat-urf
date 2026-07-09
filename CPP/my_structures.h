@@ -6,6 +6,7 @@
 #define NPSAT_URF_MY_STRUCTURES_H
 
 #include <cmath>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -46,6 +47,34 @@ struct segInfo{
     double l = 0;
 };
 
+struct StreamlinePoint{
+    std::uint64_t pid = 0;
+    std::uint64_t Eid = 0;
+    std::uint64_t Sid = 0;
+    double x = 0.0;
+    double y = 0.0;
+    double z = 0.0;
+    double vmag = 0.0;
+};
+
+struct StreamlineTrajectory{
+    std::uint64_t Eid = 0;
+    std::uint64_t Sid = 0;
+    std::uint64_t termination_pid = 0;
+    int end_reason = 0;
+    bool has_termination = false;
+    std::vector<StreamlinePoint> samples;
+
+    void clear(){
+        Eid = 0;
+        Sid = 0;
+        termination_pid = 0;
+        end_reason = 0;
+        has_termination = false;
+        samples.clear();
+    }
+};
+
 struct PorosityOptions{
     int startValue = 10;
     int endValue = 60;
@@ -56,6 +85,9 @@ struct URFoptions{
     std::string prefixInput;
     std::string suffixInput;
     std::string prefixOutput;
+    std::string prefixDiscard = "discarded_streamlines";
+    std::string prefixSimplified = "simplified_streamline";
+    std::string fileType = "npsat_ascii";
     int paddingZeros;
     int ProcId;
 
@@ -80,6 +112,8 @@ struct URFoptions{
     bool bIsGather = false;
     bool calcDecay = false;
     bool calcDiff = false;
+    bool simplifyStreamline = false;
+    double simplifyTolerance = 0.0;
     int er_to_run = 1;
 };
 
