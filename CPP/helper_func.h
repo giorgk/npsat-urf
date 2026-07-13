@@ -131,6 +131,14 @@ bool readOptionFile(URFoptions& opt){
                 opt.simplifyStreamline = tf != 0;
                 continue;
             }
+            if (propname.compare("write_simplified_vtk") == 0 ||
+                propname.compare("simplified_vtk") == 0 ||
+                propname.compare("writeSimplifiedVtk") == 0){
+                int tf;
+                inp >> tf;
+                opt.writeSimplifiedVtk = tf != 0;
+                continue;
+            }
             if (propname.compare("simplify_tolerance") == 0 ||
                 propname.compare("simplification_tolerance") == 0){
                 inp >> opt.simplifyTolerance;
@@ -154,6 +162,9 @@ bool readOptionFile(URFoptions& opt){
 
         if (!opt.calcDecay){
             opt.calcDiff = false;
+        }
+        if (opt.writeSimplifiedVtk){
+            opt.simplifyStreamline = true;
         }
         return true;
     }

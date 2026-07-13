@@ -113,6 +113,7 @@ struct URFoptions{
     bool calcDecay = false;
     bool calcDiff = false;
     bool simplifyStreamline = false;
+    bool writeSimplifiedVtk = false;
     double simplifyTolerance = 0.0;
     int er_to_run = 1;
 };

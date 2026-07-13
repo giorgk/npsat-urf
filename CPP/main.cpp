@@ -201,10 +201,14 @@ int main(int argc, char *argv[]) {
     const std::string outfile = opt.prefixOutput + "_" + std::to_string(opt.ProcId) + ".dat";
     const std::string discardFilename = opt.prefixDiscard + "_" + std::to_string(opt.ProcId) + ".dat";
     const std::string simplifiedFilename = opt.prefixSimplified + "_" + std::to_string(opt.ProcId) + ".dat";
+    const std::string simplifiedVtkFilename = opt.prefixSimplified + "_" + std::to_string(opt.ProcId) + ".vtk";
     std::cout << "Output file: " << outfile << std::endl;
     std::cout << "Discard file: " << discardFilename << std::endl;
     if (opt.simplifyStreamline) {
         std::cout << "Simplified streamline file: " << simplifiedFilename << std::endl;
+    }
+    if (opt.writeSimplifiedVtk) {
+        std::cout << "Simplified VTK file: " << simplifiedVtkFilename << std::endl;
     }
 
     std::ofstream ofile(outfile.c_str());
@@ -271,6 +275,16 @@ int main(int argc, char *argv[]) {
     catch (const std::exception& e) {
         std::cout << e.what() << std::endl;
         return 1;
+    }
+
+    if (opt.simplifyStreamline) {
+        simplifiedFile.close();
+    }
+    if (opt.writeSimplifiedVtk) {
+        if (!writeSimplifiedStreamlinesVtk(simplifiedFilename, simplifiedVtkFilename)) {
+            std::cout << "Can't write the simplified VTK file " << simplifiedVtkFilename << std::endl;
+            return 1;
+        }
     }
 
     const std::chrono::steady_clock::time_point endTimeALL = std::chrono::steady_clock::now();

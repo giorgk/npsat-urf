@@ -4,9 +4,12 @@
 #include "my_structures.h"
 #include "streamline_reader.h"
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
+#include <sstream>
+#include <string>
 #include <vector>
 
 struct SimplifiedPoint{
@@ -16,6 +19,135 @@ struct SimplifiedPoint{
     double v = 0.0;
     double age = 0.0;
 };
+
+struct SimplifiedVtkRecord{
+    unsigned long long Eid = 0;
+    unsigned long long Sid = 0;
+    double x = 0.0;
+    double y = 0.0;
+    double z = 0.0;
+    double v = 0.0;
+    double age = 0.0;
+};
+
+struct SimplifiedVtkLine{
+    unsigned long long Eid = 0;
+    unsigned long long Sid = 0;
+    unsigned long long start = 0;
+    unsigned long long count = 0;
+};
+
+inline bool parseSimplifiedStreamlineRow(const std::string& line,
+                                         SimplifiedVtkRecord& record) {
+    std::string row = line;
+    std::replace(row.begin(), row.end(), ',', ' ');
+    std::istringstream inp(row);
+    return static_cast<bool>(inp >> record.Eid >> record.Sid
+                                 >> record.x >> record.y >> record.z
+                                 >> record.v >> record.age);
+}
+
+inline bool writeSimplifiedStreamlinesVtk(const std::string& simplifiedFilename,
+                                          const std::string& vtkFilename) {
+    std::ifstream simplifiedFile(simplifiedFilename.c_str());
+    if (!simplifiedFile.good()) {
+        return false;
+    }
+
+    std::vector<SimplifiedVtkRecord> records;
+    std::vector<SimplifiedVtkLine> lines;
+    std::string line;
+    bool firstDataRow = true;
+
+    while (std::getline(simplifiedFile, line)) {
+        if (line.empty()) {
+            continue;
+        }
+
+        SimplifiedVtkRecord record;
+        if (!parseSimplifiedStreamlineRow(line, record)) {
+            if (firstDataRow) {
+                firstDataRow = false;
+                continue;
+            }
+            return false;
+        }
+        firstDataRow = false;
+
+        if (lines.empty() ||
+            lines.back().Eid != record.Eid ||
+            lines.back().Sid != record.Sid) {
+            SimplifiedVtkLine vtkLine;
+            vtkLine.Eid = record.Eid;
+            vtkLine.Sid = record.Sid;
+            vtkLine.start = static_cast<unsigned long long>(records.size());
+            vtkLine.count = 0;
+            lines.push_back(vtkLine);
+        }
+
+        records.push_back(record);
+        lines.back().count++;
+    }
+
+    std::ofstream vtkFile(vtkFilename.c_str());
+    if (!vtkFile.good()) {
+        return false;
+    }
+
+    unsigned long long lineListSize = 0;
+    for (unsigned int i = 0; i < lines.size(); ++i) {
+        lineListSize += lines[i].count + 1;
+    }
+
+    vtkFile << "# vtk DataFile Version 3.0" << std::endl;
+    vtkFile << "NPSAT simplified streamlines" << std::endl;
+    vtkFile << "ASCII" << std::endl;
+    vtkFile << "DATASET POLYDATA" << std::endl;
+    vtkFile << "POINTS " << records.size() << " double" << std::endl;
+    vtkFile << std::setprecision(10) << std::fixed;
+    for (unsigned int i = 0; i < records.size(); ++i) {
+        vtkFile << records[i].x << " "
+                << records[i].y << " "
+                << records[i].z << std::endl;
+    }
+
+    vtkFile << "LINES " << lines.size() << " " << lineListSize << std::endl;
+    for (unsigned int i = 0; i < lines.size(); ++i) {
+        vtkFile << lines[i].count;
+        for (unsigned long long j = 0; j < lines[i].count; ++j) {
+            vtkFile << " " << lines[i].start + j;
+        }
+        vtkFile << std::endl;
+    }
+
+    vtkFile << "POINT_DATA " << records.size() << std::endl;
+    vtkFile << "SCALARS velocity double 1" << std::endl;
+    vtkFile << "LOOKUP_TABLE default" << std::endl;
+    for (unsigned int i = 0; i < records.size(); ++i) {
+        vtkFile << records[i].v << std::endl;
+    }
+
+    vtkFile << "SCALARS age double 1" << std::endl;
+    vtkFile << "LOOKUP_TABLE default" << std::endl;
+    for (unsigned int i = 0; i < records.size(); ++i) {
+        vtkFile << records[i].age << std::endl;
+    }
+
+    vtkFile << std::setprecision(0) << std::fixed;
+    vtkFile << "SCALARS Eid double 1" << std::endl;
+    vtkFile << "LOOKUP_TABLE default" << std::endl;
+    for (unsigned int i = 0; i < records.size(); ++i) {
+        vtkFile << static_cast<double>(records[i].Eid) << std::endl;
+    }
+
+    vtkFile << "SCALARS Sid double 1" << std::endl;
+    vtkFile << "LOOKUP_TABLE default" << std::endl;
+    for (unsigned int i = 0; i < records.size(); ++i) {
+        vtkFile << static_cast<double>(records[i].Sid) << std::endl;
+    }
+
+    return true;
+}
 
 inline double pointSegmentDistance(const StreamlinePoint& p,
                                    const StreamlinePoint& a,
