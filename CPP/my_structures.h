@@ -87,7 +87,6 @@ struct URFoptions{
     std::string prefixOutput;
     std::string prefixDiscard = "discarded_streamlines";
     std::string prefixSimplified = "simplified_streamline";
-    std::string iterInputToken = "_iter_";
     std::string fileType = "npsat_ascii";
     int paddingZeros;
     int iterPaddingZeros = 4;

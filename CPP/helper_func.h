@@ -99,11 +99,6 @@ bool readOptionFile(URFoptions& opt){
                 inp >> opt.iterPaddingZeros;
                 continue;
             }
-            if (propname.compare("iter_input_token") == 0 ||
-                propname.compare("iterInputToken") == 0){
-                inp >> opt.iterInputToken;
-                continue;
-            }
             if (propname.compare("startPor") == 0){
                 inp >> opt.por.startValue;
                 continue;

@@ -39,16 +39,13 @@ bool shouldFitEndReason(const int endReason, const URFoptions& opt) {
     return false;
 }
 
-std::string buildStandardInputFilename(const URFoptions& opt) {
-    return opt.prefixInput + num2Padstr(opt.ProcId, opt.paddingZeros) + "." + opt.suffixInput;
-}
-
 std::string buildArrayInputFilename(const URFoptions& opt,
                                     const int rankId,
                                     const int iterId) {
     return opt.prefixInput +
+           "rank_" +
            num2Padstr(rankId, opt.paddingZeros) +
-           opt.iterInputToken +
+           "_iter_" +
            num2Padstr(iterId, opt.iterPaddingZeros) +
            "." + opt.suffixInput;
 }
@@ -186,7 +183,7 @@ bool processCompleteStreamline(const StreamlineTrajectory& trajectory,
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        std::cout << "Usage: NPSAT_URF <process_id> or NPSAT_URF <n_ranks> <n_iters> <array_id> or NPSAT_URF -v" << std::endl;
+        std::cout << "Usage: NPSAT_URF <n_ranks> <n_iters> <array_id> or NPSAT_URF -v" << std::endl;
         return 1;
     }
 
@@ -201,13 +198,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    bool useArrayInput = false;
     int rankId = 0;
     int iterId = 0;
-    if (argc == 2) {
-        opt.ProcId = std::atoi(argv[1]);
-    }
-    else if (argc == 4) {
+    if (argc == 4) {
         const int nRanks = std::atoi(argv[1]);
         const int nIters = std::atoi(argv[2]);
         const int arrayId = std::atoi(argv[3]);
@@ -218,10 +211,9 @@ int main(int argc, char *argv[]) {
         opt.ProcId = arrayId;
         rankId = arrayId % nRanks;
         iterId = arrayId / nRanks;
-        useArrayInput = true;
     }
     else {
-        std::cout << "Usage: NPSAT_URF <process_id> or NPSAT_URF <n_ranks> <n_iters> <array_id> or NPSAT_URF -v" << std::endl;
+        std::cout << "Usage: NPSAT_URF <n_ranks> <n_iters> <array_id> or NPSAT_URF -v" << std::endl;
         return 1;
     }
 
@@ -236,15 +228,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    const std::string filename = useArrayInput
-                                 ? buildArrayInputFilename(opt, rankId, iterId)
-                                 : buildStandardInputFilename(opt);
+    const std::string filename = buildArrayInputFilename(opt, rankId, iterId);
     std::cout << "Reading: " << filename << std::endl;
-    if (useArrayInput) {
-        std::cout << "Array id " << opt.ProcId
-                  << " maps to rank " << rankId
-                  << " and iter " << iterId << std::endl;
-    }
+    std::cout << "Array id " << opt.ProcId
+              << " maps to rank " << rankId
+              << " and iter " << iterId << std::endl;
 
     const std::string outfile = opt.prefixOutput + "_" + std::to_string(opt.ProcId) + ".dat";
     const std::string discardFilename = opt.prefixDiscard + "_" + std::to_string(opt.ProcId) + ".dat";

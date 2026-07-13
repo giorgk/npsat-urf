@@ -12,23 +12,22 @@ The parser reads the first token as the option name and then reads the next valu
 
 | Option | Aliases | Default | How it is used |
 | --- | --- | --- | --- |
-| `prefix` | none | none | Prefix for the input streamline file. The full input filename is `prefix` + zero-padded process id + `.` + `suffix`. |
-| `paddingZeros` | none | uninitialized | Number of digits used by the zero-padded process id in the input filename. |
-| `iter_paddingZeros` | `iterPaddingZeros` | `4` | Number of digits used by the zero-padded iteration id when using array-job input mode. |
-| `iter_input_token` | `iterInputToken` | `_iter_` | Text placed between the zero-padded rank id and zero-padded iteration id when using array-job input mode. |
+| `prefix` | none | none | Prefix before the built-in `rank_<rank>_iter_<iter>` filename segment. |
+| `paddingZeros` | none | uninitialized | Number of digits used by the zero-padded rank id in the input filename. |
+| `iter_paddingZeros` | `iterPaddingZeros` | `4` | Number of digits used by the zero-padded iteration id in the input filename. |
 | `suffix` | none | none | Input filename suffix after the dot. |
 | `file_type` | none | `npsat_ascii` | Input streamline format. Supported values are `npsat_ascii` and `npsat_bin`; `modpath` is recognized but not implemented. |
-| `output_prefix` | none | none | Prefix for the URF output file. The output filename is `output_prefix_<process_id>.dat`. |
-| `discard_prefix` | `discarded_prefix`, `discard_output_prefix` | `discarded_streamlines` | Prefix for discarded-streamline diagnostics. The file is `discard_prefix_<process_id>.dat`. |
-| `simplified_prefix` | `simplify_prefix` | `simplified_streamline` | Prefix for simplified streamline outputs. The CSV file is `simplified_prefix_<process_id>.dat`; the VTK file is `simplified_prefix_<process_id>.vtk`. |
+| `output_prefix` | none | none | Prefix for the URF output file. The output filename is `output_prefix_<array_id>.dat`. |
+| `discard_prefix` | `discarded_prefix`, `discard_output_prefix` | `discarded_streamlines` | Prefix for discarded-streamline diagnostics. The file is `discard_prefix_<array_id>.dat`. |
+| `simplified_prefix` | `simplify_prefix` | `simplified_streamline` | Prefix for simplified streamline outputs. The CSV file is `simplified_prefix_<array_id>.dat`; the VTK file is `simplified_prefix_<array_id>.vtk`. |
 
 ## Streamline simplification and VTK
 
 | Option | Aliases | Default | How it is used |
 | --- | --- | --- | --- |
-| `simplify_streamline` | `simplifyStreamline` | `0` | When nonzero, writes simplified streamline points to `simplified_prefix_<process_id>.dat`. |
+| `simplify_streamline` | `simplifyStreamline` | `0` | When nonzero, writes simplified streamline points to `simplified_prefix_<array_id>.dat`. |
 | `simplify_tolerance` | `simplification_tolerance` | `0.0` | Douglas-Peucker distance tolerance used to simplify each streamline. A value of `0.0` keeps all geometrically non-collinear points. |
-| `write_simplified_vtk` | `simplified_vtk`, `writeSimplifiedVtk` | `0` | When nonzero, also writes `simplified_prefix_<process_id>.vtk` for ParaView. This automatically enables `simplify_streamline`. |
+| `write_simplified_vtk` | `simplified_vtk`, `writeSimplifiedVtk` | `0` | When nonzero, also writes `simplified_prefix_<array_id>.vtk` for ParaView. This automatically enables `simplify_streamline`. |
 
 The simplified CSV columns are `Eid,Sid,x,y,z,v,a`. The VTK output is legacy ASCII `POLYDATA`: all simplified points are written once, and each contiguous `Eid/Sid` group is written as one polyline in the `LINES` section. Point data includes velocity, age, `Eid`, and `Sid`.
 
@@ -56,22 +55,15 @@ er_to_run 7 14 3
 
 With this setting, fitting is carried out when the streamline end reason is `7`, `14`, or `3`. If any listed value is negative, all end reasons are processed.
 
-## Command-line modes
+## Command-line mode
 
-The executable supports two normal run modes:
+The executable supports one normal run mode:
 
 ```text
-NPSAT_URF <process_id>
 NPSAT_URF <n_ranks> <n_iters> <array_id>
 ```
 
-The single-id form preserves the original input filename pattern:
-
-```text
-prefix + zero_pad(process_id, paddingZeros) + "." + suffix
-```
-
-The array-job form maps `array_id` to a unique rank/iteration pair:
+This maps `array_id` to a unique rank/iteration pair:
 
 ```text
 rank = array_id % n_ranks
@@ -81,7 +73,7 @@ iter = array_id / n_ranks
 It then reads:
 
 ```text
-prefix + zero_pad(rank, paddingZeros) + iter_input_token + zero_pad(iter, iter_paddingZeros) + "." + suffix
+prefix + "rank_" + zero_pad(rank, paddingZeros) + "_iter_" + zero_pad(iter, iter_paddingZeros) + "." + suffix
 ```
 
 For files like:
@@ -93,9 +85,8 @@ mcm_vi_streamlines_ordered_rank_0029_iter_0005.bin
 use:
 
 ```text
-prefix mcm_vi_streamlines_ordered_rank_
+prefix mcm_vi_streamlines_ordered_
 paddingZeros 4
-iter_input_token _iter_
 iter_paddingZeros 4
 suffix bin
 file_type npsat_bin
