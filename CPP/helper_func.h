@@ -34,6 +34,10 @@ bool readOptionFile(URFoptions& opt){
                 inp >> opt.suffixInput;
                 continue;
             }
+            if (propname.compare("paddingZeros") == 0){
+                inp >> opt.paddingZeros;
+                continue;
+            }
             if (propname.compare("output_prefix") == 0){
                 inp >> opt.prefixOutput;
                 continue;
@@ -89,8 +93,15 @@ bool readOptionFile(URFoptions& opt){
                 inp >> opt.skipAge;
                 continue;
             }
-            if (propname.compare("paddingZeros") == 0){
-                inp >> opt.paddingZeros;
+
+            if (propname.compare("iter_paddingZeros") == 0 ||
+                propname.compare("iterPaddingZeros") == 0){
+                inp >> opt.iterPaddingZeros;
+                continue;
+            }
+            if (propname.compare("iter_input_token") == 0 ||
+                propname.compare("iterInputToken") == 0){
+                inp >> opt.iterInputToken;
                 continue;
             }
             if (propname.compare("startPor") == 0){
@@ -150,7 +161,14 @@ bool readOptionFile(URFoptions& opt){
             }
 
             if (propname.compare("er_to_run") == 0){
-                inp >> opt.er_to_run;
+                std::vector<int> endReasons;
+                int endReason;
+                while (inp >> endReason){
+                    endReasons.push_back(endReason);
+                }
+                if (!endReasons.empty()){
+                    opt.er_to_run = endReasons;
+                }
                 continue;
             }
 

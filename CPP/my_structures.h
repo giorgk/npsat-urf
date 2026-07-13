@@ -87,8 +87,10 @@ struct URFoptions{
     std::string prefixOutput;
     std::string prefixDiscard = "discarded_streamlines";
     std::string prefixSimplified = "simplified_streamline";
+    std::string iterInputToken = "_iter_";
     std::string fileType = "npsat_ascii";
     int paddingZeros;
+    int iterPaddingZeros = 4;
     int ProcId;
 
     double alpha = 0.32;
@@ -115,7 +117,7 @@ struct URFoptions{
     bool simplifyStreamline = false;
     bool writeSimplifiedVtk = false;
     double simplifyTolerance = 0.0;
-    int er_to_run = 1;
+    std::vector<int> er_to_run = std::vector<int>(1, 1);
 };
 
 struct ParamSet{

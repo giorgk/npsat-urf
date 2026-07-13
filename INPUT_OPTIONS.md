@@ -14,6 +14,8 @@ The parser reads the first token as the option name and then reads the next valu
 | --- | --- | --- | --- |
 | `prefix` | none | none | Prefix for the input streamline file. The full input filename is `prefix` + zero-padded process id + `.` + `suffix`. |
 | `paddingZeros` | none | uninitialized | Number of digits used by the zero-padded process id in the input filename. |
+| `iter_paddingZeros` | `iterPaddingZeros` | `4` | Number of digits used by the zero-padded iteration id when using array-job input mode. |
+| `iter_input_token` | `iterInputToken` | `_iter_` | Text placed between the zero-padded rank id and zero-padded iteration id when using array-job input mode. |
 | `suffix` | none | none | Input filename suffix after the dot. |
 | `file_type` | none | `npsat_ascii` | Input streamline format. Supported values are `npsat_ascii` and `npsat_bin`; `modpath` is recognized but not implemented. |
 | `output_prefix` | none | none | Prefix for the URF output file. The output filename is `output_prefix_<process_id>.dat`. |
@@ -46,6 +48,59 @@ The simplified CSV columns are `Eid,Sid,x,y,z,v,a`. The VTK output is legacy ASC
 | `halfTime` | `12.32` | Half-time parameter used for decay calculations. |
 | `er_to_run` | `1` | End reason to process. Values below zero process all end reasons; otherwise only streamlines with matching end reason get URF values. |
 
+`er_to_run` may contain multiple values on the same line. For example:
+
+```text
+er_to_run 7 14 3
+```
+
+With this setting, fitting is carried out when the streamline end reason is `7`, `14`, or `3`. If any listed value is negative, all end reasons are processed.
+
+## Command-line modes
+
+The executable supports two normal run modes:
+
+```text
+NPSAT_URF <process_id>
+NPSAT_URF <n_ranks> <n_iters> <array_id>
+```
+
+The single-id form preserves the original input filename pattern:
+
+```text
+prefix + zero_pad(process_id, paddingZeros) + "." + suffix
+```
+
+The array-job form maps `array_id` to a unique rank/iteration pair:
+
+```text
+rank = array_id % n_ranks
+iter = array_id / n_ranks
+```
+
+It then reads:
+
+```text
+prefix + zero_pad(rank, paddingZeros) + iter_input_token + zero_pad(iter, iter_paddingZeros) + "." + suffix
+```
+
+For files like:
+
+```text
+mcm_vi_streamlines_ordered_rank_0029_iter_0005.bin
+```
+
+use:
+
+```text
+prefix mcm_vi_streamlines_ordered_rank_
+paddingZeros 4
+iter_input_token _iter_
+iter_paddingZeros 4
+suffix bin
+file_type npsat_bin
+```
+
 ## Porosity sweep
 
 | Option | Default | How it is used |
@@ -61,4 +116,3 @@ The simplified CSV columns are `Eid,Sid,x,y,z,v,a`. The VTK output is legacy ASC
 | `bIsGather` | `0` | Parsed and stored for compatibility with existing option files. |
 | `calcDecay` | `0` | When nonzero, writes decay fit columns in addition to the base URF columns. |
 | `calcDiff` | `0` | When nonzero, writes diffusion fit columns. If `calcDecay` is `0`, this is forced to `0`. |
-
