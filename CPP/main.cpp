@@ -117,7 +117,9 @@ bool processCompleteStreamline(const StreamlineTrajectory& trajectory,
                                std::ofstream& ofile,
                                std::ofstream& discardFile,
                                int& cntStrml,
-                               std::chrono::steady_clock::time_point& beginTime) {
+                               std::chrono::steady_clock::time_point& beginTime,
+                               double& totalStreamlineSeconds,
+                               double& maxStreamlineSeconds) {
     std::vector<segInfo> strmlnSeg;
     double streamlineLength = 0.0;
     double pLndX = 0.0;
@@ -132,11 +134,7 @@ bool processCompleteStreamline(const StreamlineTrajectory& trajectory,
         return false;
     }
 
-    const std::chrono::steady_clock::time_point endTime1 = std::chrono::steady_clock::now();
-    std::cout << static_cast<unsigned long long>(trajectory.Eid) << " "
-              << static_cast<unsigned long long>(trajectory.Sid) << " "
-              << ++cntStrml << " ["
-              << std::chrono::duration_cast<std::chrono::microseconds>(endTime1 - beginTime).count()/1000000.0;
+    ++cntStrml;
 
     FittedParam fp;
     ofile << static_cast<unsigned long long>(trajectory.Eid) << ", "
@@ -176,9 +174,12 @@ bool processCompleteStreamline(const StreamlineTrajectory& trajectory,
     ofile << std::endl;
 
     const std::chrono::steady_clock::time_point endTime2 = std::chrono::steady_clock::now();
-    std::cout << ", "
-              << std::chrono::duration_cast<std::chrono::microseconds>(endTime2 - beginTime).count()/1000000.0
-              << "]" << std::endl;
+    const double streamlineSeconds =
+        std::chrono::duration_cast<std::chrono::microseconds>(endTime2 - beginTime).count()/1000000.0;
+    totalStreamlineSeconds += streamlineSeconds;
+    if (streamlineSeconds > maxStreamlineSeconds) {
+        maxStreamlineSeconds = streamlineSeconds;
+    }
 
     beginTime = std::chrono::steady_clock::now();
     return true;
@@ -260,14 +261,13 @@ bool closeOutputFiles(const URFoptions& opt,
 bool processInputFile(const int workId,
                       URFoptions& opt,
                       OutputFiles& files,
-                      const int mpiRank) {
+                      const int mpiRank,
+                      int& streamlineCount,
+                      double& totalStreamlineSeconds,
+                      double& maxStreamlineSeconds) {
     const int inputRankId = workId % opt.nproc;
     const int iterId = workId / opt.nproc;
     const std::string filename = buildArrayInputFilename(opt, inputRankId, iterId);
-
-    std::cout << "MPI rank " << mpiRank << " reading work " << workId
-              << " (input rank " << inputRankId << ", iter " << iterId
-              << "): " << filename << std::endl;
 
     std::ifstream datafile;
     if (opt.fileType.compare("npsat_bin") == 0) {
@@ -299,26 +299,63 @@ bool processInputFile(const int workId,
             }
             writeSimplifiedStreamline(trajectory, opt, files.simplified, files.discard);
             processCompleteStreamline(trajectory, opt, files.result, files.discard,
-                                      cntStrml, beginTime);
+                                      cntStrml, beginTime, totalStreamlineSeconds,
+                                      maxStreamlineSeconds);
         }
     }
     catch (const std::exception& e) {
+        streamlineCount = cntStrml;
         std::cerr << "MPI rank " << mpiRank << ", work " << workId
                   << ": " << e.what() << std::endl;
         return false;
     }
+    streamlineCount = cntStrml;
     return true;
 }
 
-void reportProgress(const int completed,
+void reportProgress(const std::vector<long long>& rankCompletedFiles,
+                    const std::vector<long long>& rankStreamlines,
+                    const std::vector<double>& rankTotalSeconds,
+                    const std::vector<double>& rankMaxSeconds,
                     const int total,
                     const int interval,
                     int& nextPercent) {
+    long long completed = 0;
+    long long streamlines = 0;
+    double averageOfRankAverages = 0.0;
+    double maximumStreamlineSeconds = 0.0;
+    int ranksWithStreamlines = 0;
+    for (unsigned int i = 0; i < rankCompletedFiles.size(); ++i) {
+        completed += rankCompletedFiles[i];
+        streamlines += rankStreamlines[i];
+        if (rankStreamlines[i] > 0) {
+            averageOfRankAverages += rankTotalSeconds[i] / rankStreamlines[i];
+            ++ranksWithStreamlines;
+        }
+        if (rankMaxSeconds[i] > maximumStreamlineSeconds) {
+            maximumStreamlineSeconds = rankMaxSeconds[i];
+        }
+    }
+    if (ranksWithStreamlines > 0) {
+        averageOfRankAverages /= ranksWithStreamlines;
+    }
+
     const int percent = static_cast<int>((100LL * completed) / total);
     while (nextPercent <= 100 && percent >= nextPercent) {
-        std::cout << "Progress: " << nextPercent << "% (" << completed
-                  << "/" << total << " input files completed)" << std::endl;
-        nextPercent += interval;
+        std::cout << "Progress " << nextPercent << "% | files " << completed
+                  << "/" << total << " | streamlines " << streamlines
+                  << " | avg streamline " << std::setprecision(6) << std::fixed
+                  << averageOfRankAverages << " s | max streamline "
+                  << maximumStreamlineSeconds << " s" << std::endl;
+        if (nextPercent == 100) {
+            nextPercent = 101;
+        }
+        else {
+            nextPercent += interval;
+            if (nextPercent > 100) {
+                nextPercent = 100;
+            }
+        }
     }
 }
 
@@ -386,6 +423,14 @@ int main(int argc, char *argv[]) {
     int completed = 0;
     int nextPercent = opt.progressPercent;
     int localFailures = 0;
+    long long localCompletedFiles = 0;
+    long long localStreamlines = 0;
+    double localTotalStreamlineSeconds = 0.0;
+    double localMaxStreamlineSeconds = 0.0;
+    std::vector<long long> rankCompletedFiles(mpiSize, 0);
+    std::vector<long long> rankStreamlines(mpiSize, 0);
+    std::vector<double> rankTotalSeconds(mpiSize, 0.0);
+    std::vector<double> rankMaxSeconds(mpiSize, 0.0);
     int filesInPart = 0;
     int partId = 0;
     bool outputOpen = false;
@@ -405,31 +450,58 @@ int main(int argc, char *argv[]) {
             filesInPart = 0;
         }
 
-        bool success = outputOpen && processInputFile(workId, opt, outputs, mpiRank);
+        int fileStreamlines = 0;
+        double fileTotalStreamlineSeconds = 0.0;
+        double fileMaxStreamlineSeconds = 0.0;
+        bool success = outputOpen &&
+            processInputFile(workId, opt, outputs, mpiRank, fileStreamlines,
+                             fileTotalStreamlineSeconds, fileMaxStreamlineSeconds);
         if (!success) {
             ++localFailures;
         }
         ++filesInPart;
+        ++localCompletedFiles;
+        localStreamlines += fileStreamlines;
+        localTotalStreamlineSeconds += fileTotalStreamlineSeconds;
+        if (fileMaxStreamlineSeconds > localMaxStreamlineSeconds) {
+            localMaxStreamlineSeconds = fileMaxStreamlineSeconds;
+        }
 
-        const int status = success ? 1 : 0;
+        double progressMessage[4];
+        progressMessage[0] = static_cast<double>(localCompletedFiles);
+        progressMessage[1] = static_cast<double>(localStreamlines);
+        progressMessage[2] = localTotalStreamlineSeconds;
+        progressMessage[3] = localMaxStreamlineSeconds;
         if (mpiRank == 0) {
             ++completed;
+            rankCompletedFiles[0] = localCompletedFiles;
+            rankStreamlines[0] = localStreamlines;
+            rankTotalSeconds[0] = localTotalStreamlineSeconds;
+            rankMaxSeconds[0] = localMaxStreamlineSeconds;
             int messageWaiting = 0;
             MPI_Status messageStatus;
             do {
                 MPI_Iprobe(MPI_ANY_SOURCE, progressTag, MPI_COMM_WORLD,
                            &messageWaiting, &messageStatus);
                 if (messageWaiting) {
-                    int workerStatus = 0;
-                    MPI_Recv(&workerStatus, 1, MPI_INT, messageStatus.MPI_SOURCE,
+                    double workerProgress[4];
+                    MPI_Recv(workerProgress, 4, MPI_DOUBLE, messageStatus.MPI_SOURCE,
                              progressTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    const int source = messageStatus.MPI_SOURCE;
+                    rankCompletedFiles[source] = static_cast<long long>(workerProgress[0]);
+                    rankStreamlines[source] = static_cast<long long>(workerProgress[1]);
+                    rankTotalSeconds[source] = workerProgress[2];
+                    rankMaxSeconds[source] = workerProgress[3];
                     ++completed;
                 }
             } while (messageWaiting);
-            reportProgress(completed, totalFiles, opt.progressPercent, nextPercent);
+            reportProgress(rankCompletedFiles, rankStreamlines, rankTotalSeconds,
+                           rankMaxSeconds, totalFiles, opt.progressPercent,
+                           nextPercent);
         }
         else {
-            MPI_Send(&status, 1, MPI_INT, 0, progressTag, MPI_COMM_WORLD);
+            MPI_Send(progressMessage, 4, MPI_DOUBLE, 0, progressTag,
+                     MPI_COMM_WORLD);
         }
     }
 
@@ -439,15 +511,19 @@ int main(int argc, char *argv[]) {
 
     if (mpiRank == 0) {
         while (completed < totalFiles) {
-            int workerStatus = 0;
-            MPI_Recv(&workerStatus, 1, MPI_INT, MPI_ANY_SOURCE, progressTag,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            double workerProgress[4];
+            MPI_Status messageStatus;
+            MPI_Recv(workerProgress, 4, MPI_DOUBLE, MPI_ANY_SOURCE, progressTag,
+                     MPI_COMM_WORLD, &messageStatus);
+            const int source = messageStatus.MPI_SOURCE;
+            rankCompletedFiles[source] = static_cast<long long>(workerProgress[0]);
+            rankStreamlines[source] = static_cast<long long>(workerProgress[1]);
+            rankTotalSeconds[source] = workerProgress[2];
+            rankMaxSeconds[source] = workerProgress[3];
             ++completed;
-            reportProgress(completed, totalFiles, opt.progressPercent, nextPercent);
-        }
-        if (100 % opt.progressPercent != 0) {
-            std::cout << "Progress: 100% (" << completed << "/" << totalFiles
-                      << " input files completed)" << std::endl;
+            reportProgress(rankCompletedFiles, rankStreamlines, rankTotalSeconds,
+                           rankMaxSeconds, totalFiles, opt.progressPercent,
+                           nextPercent);
         }
     }
 
