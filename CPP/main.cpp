@@ -5,8 +5,11 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
+
+#include <mpi.h>
 
 #include "my_structures.h"
 #include "NPSAT_URF_main.h"
@@ -181,96 +184,90 @@ bool processCompleteStreamline(const StreamlineTrajectory& trajectory,
     return true;
 }
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        std::cout << "Usage: NPSAT_URF <n_ranks> <n_iters> <array_id> or NPSAT_URF -v" << std::endl;
-        return 1;
-    }
+struct OutputFiles {
+    std::ofstream result;
+    std::ofstream discard;
+    std::ofstream simplified;
+    std::string simplifiedFilename;
+    std::string simplifiedVtkFilename;
+};
 
-    std::string inputArg(argv[1]);
-    if (inputArg.compare("-v") == 0) {
-        std::cout << "version 1.4.0" << std::endl;
-        return 0;
+std::string buildOutputBase(const std::string& prefix,
+                            const int mpiRank,
+                            const int partId) {
+    std::string base = prefix + "_rank_" + std::to_string(mpiRank);
+    if (partId > 0) {
+        base += "_" + std::to_string(partId);
     }
+    return base;
+}
 
-    URFoptions opt;
-    if (!readOptionFile(opt)) {
-        return 1;
+bool openOutputFiles(const URFoptions& opt,
+                     const int mpiRank,
+                     const int partId,
+                     OutputFiles& files) {
+    const std::string resultFilename = buildOutputBase(opt.prefixOutput, mpiRank, partId) + ".dat";
+    const std::string discardFilename = buildOutputBase(opt.prefixDiscard, mpiRank, partId) + ".dat";
+    files.simplifiedFilename = buildOutputBase(opt.prefixSimplified, mpiRank, partId) + ".dat";
+    files.simplifiedVtkFilename = buildOutputBase(opt.prefixSimplified, mpiRank, partId) + ".vtk";
+
+    files.result.open(resultFilename.c_str());
+    if (!files.result.good()) {
+        std::cerr << "MPI rank " << mpiRank << ": can't open output file "
+                  << resultFilename << std::endl;
+        return false;
     }
+    writeOutputHeader(files.result, opt);
 
-    int rankId = 0;
-    int iterId = 0;
-    if (argc == 4) {
-        const int nRanks = std::atoi(argv[1]);
-        const int nIters = std::atoi(argv[2]);
-        const int arrayId = std::atoi(argv[3]);
-        if (nRanks <= 0 || nIters <= 0 || arrayId < 0 || arrayId >= nRanks * nIters) {
-            std::cout << "Invalid array job arguments. Expected 0 <= array_id < n_ranks * n_iters." << std::endl;
-            return 1;
-        }
-        opt.ProcId = arrayId;
-        rankId = arrayId % nRanks;
-        iterId = arrayId / nRanks;
+    files.discard.open(discardFilename.c_str());
+    if (!files.discard.good()) {
+        std::cerr << "MPI rank " << mpiRank << ": can't open discard file "
+                  << discardFilename << std::endl;
+        return false;
     }
-    else {
-        std::cout << "Usage: NPSAT_URF <n_ranks> <n_iters> <array_id> or NPSAT_URF -v" << std::endl;
-        return 1;
-    }
+    files.discard << "Eid, Sid, samples, has_termination, termination_pid, ER, reason" << std::endl;
 
-    if (opt.fileType.compare("modpath") == 0) {
-        std::cout << "file_type modpath is not available yet." << std::endl;
-        return 1;
-    }
-
-    if (opt.fileType.compare("npsat_ascii") != 0 &&
-        opt.fileType.compare("npsat_bin") != 0) {
-        std::cout << "Unsupported file_type: " << opt.fileType << std::endl;
-        return 1;
-    }
-
-    const std::string filename = buildArrayInputFilename(opt, rankId, iterId);
-    std::cout << "Reading: " << filename << std::endl;
-    std::cout << "Array id " << opt.ProcId
-              << " maps to rank " << rankId
-              << " and iter " << iterId << std::endl;
-
-    const std::string outfile = opt.prefixOutput + "_" + std::to_string(opt.ProcId) + ".dat";
-    const std::string discardFilename = opt.prefixDiscard + "_" + std::to_string(opt.ProcId) + ".dat";
-    const std::string simplifiedFilename = opt.prefixSimplified + "_" + std::to_string(opt.ProcId) + ".dat";
-    const std::string simplifiedVtkFilename = opt.prefixSimplified + "_" + std::to_string(opt.ProcId) + ".vtk";
-    std::cout << "Output file: " << outfile << std::endl;
-    std::cout << "Discard file: " << discardFilename << std::endl;
     if (opt.simplifyStreamline) {
-        std::cout << "Simplified streamline file: " << simplifiedFilename << std::endl;
-    }
-    if (opt.writeSimplifiedVtk) {
-        std::cout << "Simplified VTK file: " << simplifiedVtkFilename << std::endl;
-    }
-
-    std::ofstream ofile(outfile.c_str());
-    if (!ofile.good()) {
-        std::cout << "Can't open the output file " << outfile << std::endl;
-        return 1;
-    }
-    writeOutputHeader(ofile, opt);
-    std::cout << "Output file header prepared" << std::endl;
-
-    std::ofstream discardFile(discardFilename.c_str());
-    if (!discardFile.good()) {
-        std::cout << "Can't open the discard file " << discardFilename << std::endl;
-        return 1;
-    }
-    discardFile << "Eid, Sid, samples, has_termination, termination_pid, ER, reason" << std::endl;
-
-    std::ofstream simplifiedFile;
-    if (opt.simplifyStreamline) {
-        simplifiedFile.open(simplifiedFilename.c_str());
-        if (!simplifiedFile.good()) {
-            std::cout << "Can't open the simplified streamline file " << simplifiedFilename << std::endl;
-            return 1;
+        files.simplified.open(files.simplifiedFilename.c_str());
+        if (!files.simplified.good()) {
+            std::cerr << "MPI rank " << mpiRank << ": can't open simplified file "
+                      << files.simplifiedFilename << std::endl;
+            return false;
         }
-        simplifiedFile << "Eid,Sid,x,y,z,v,a" << std::endl;
+        files.simplified << "Eid,Sid,x,y,z,v,a" << std::endl;
     }
+    return true;
+}
+
+bool closeOutputFiles(const URFoptions& opt,
+                      const int mpiRank,
+                      OutputFiles& files) {
+    files.result.close();
+    files.discard.close();
+    if (opt.simplifyStreamline) {
+        files.simplified.close();
+    }
+    if (opt.writeSimplifiedVtk &&
+        !writeSimplifiedStreamlinesVtk(files.simplifiedFilename,
+                                       files.simplifiedVtkFilename)) {
+        std::cerr << "MPI rank " << mpiRank << ": can't write simplified VTK file "
+                  << files.simplifiedVtkFilename << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool processInputFile(const int workId,
+                      URFoptions& opt,
+                      OutputFiles& files,
+                      const int mpiRank) {
+    const int inputRankId = workId % opt.nproc;
+    const int iterId = workId / opt.nproc;
+    const std::string filename = buildArrayInputFilename(opt, inputRankId, iterId);
+
+    std::cout << "MPI rank " << mpiRank << " reading work " << workId
+              << " (input rank " << inputRankId << ", iter " << iterId
+              << "): " << filename << std::endl;
 
     std::ifstream datafile;
     if (opt.fileType.compare("npsat_bin") == 0) {
@@ -279,54 +276,192 @@ int main(int argc, char *argv[]) {
     else {
         datafile.open(filename.c_str());
     }
-
     if (!datafile.good()) {
-        std::cout << "Can't open the file " << filename << std::endl;
-        return 1;
+        std::cerr << "MPI rank " << mpiRank << ": can't open input file "
+                  << filename << std::endl;
+        return false;
     }
 
-    std::chrono::steady_clock::time_point beginTimeALL = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point beginTime = std::chrono::steady_clock::now();
     int cntStrml = 0;
     StreamlineTrajectory trajectory;
-
     try {
         while (true) {
             bool found = false;
             if (opt.fileType.compare("npsat_bin") == 0) {
-                found = readNextBinaryStreamline(datafile, trajectory, filename, discardFile);
+                found = readNextBinaryStreamline(datafile, trajectory, filename, files.discard);
             }
             else {
-                found = readNextAsciiStreamline(datafile, trajectory, discardFile);
+                found = readNextAsciiStreamline(datafile, trajectory, files.discard);
             }
-
             if (!found) {
                 break;
             }
-
-            writeSimplifiedStreamline(trajectory, opt, simplifiedFile, discardFile);
-            processCompleteStreamline(trajectory, opt, ofile, discardFile, cntStrml, beginTime);
+            writeSimplifiedStreamline(trajectory, opt, files.simplified, files.discard);
+            processCompleteStreamline(trajectory, opt, files.result, files.discard,
+                                      cntStrml, beginTime);
         }
     }
     catch (const std::exception& e) {
-        std::cout << e.what() << std::endl;
+        std::cerr << "MPI rank " << mpiRank << ", work " << workId
+                  << ": " << e.what() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void reportProgress(const int completed,
+                    const int total,
+                    const int interval,
+                    int& nextPercent) {
+    const int percent = static_cast<int>((100LL * completed) / total);
+    while (nextPercent <= 100 && percent >= nextPercent) {
+        std::cout << "Progress: " << nextPercent << "% (" << completed
+                  << "/" << total << " input files completed)" << std::endl;
+        nextPercent += interval;
+    }
+}
+
+int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
+    int mpiRank = 0;
+    int mpiSize = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
+
+    if (argc != 2) {
+        if (mpiRank == 0) {
+            std::cout << "Usage: NPSAT_URF <options_file> or NPSAT_URF -v" << std::endl;
+        }
+        MPI_Finalize();
         return 1;
     }
 
-    if (opt.simplifyStreamline) {
-        simplifiedFile.close();
+    const std::string inputArg(argv[1]);
+    if (inputArg.compare("-v") == 0) {
+        if (mpiRank == 0) {
+            std::cout << "version 2.0.0" << std::endl;
+        }
+        MPI_Finalize();
+        return 0;
     }
-    if (opt.writeSimplifiedVtk) {
-        if (!writeSimplifiedStreamlinesVtk(simplifiedFilename, simplifiedVtkFilename)) {
-            std::cout << "Can't write the simplified VTK file " << simplifiedVtkFilename << std::endl;
-            return 1;
+
+    URFoptions opt;
+    int localValid = readOptionFile(inputArg, opt) ? 1 : 0;
+    if (localValid && (opt.nproc <= 0 || opt.niter <= 0 ||
+                       opt.outputFilesPerPart < 0 ||
+                       opt.progressPercent < 1 || opt.progressPercent > 100 ||
+                       opt.nproc > std::numeric_limits<int>::max() / opt.niter)) {
+        if (mpiRank == 0) {
+            std::cerr << "Invalid options: nproc and niter must be positive, "
+                      << "output_files_per_part must be nonnegative, and "
+                      << "progress_percent must be between 1 and 100." << std::endl;
+        }
+        localValid = 0;
+    }
+    if (localValid && opt.fileType.compare("npsat_ascii") != 0 &&
+        opt.fileType.compare("npsat_bin") != 0) {
+        if (mpiRank == 0) {
+            std::cerr << "Unsupported file_type: " << opt.fileType << std::endl;
+        }
+        localValid = 0;
+    }
+
+    int allValid = 0;
+    MPI_Allreduce(&localValid, &allValid, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    if (!allValid) {
+        MPI_Finalize();
+        return 1;
+    }
+
+    const int totalFiles = opt.nproc * opt.niter;
+    if (mpiRank == 0) {
+        std::cout << "Starting " << totalFiles << " input files on " << mpiSize
+                  << " MPI processes; progress interval " << opt.progressPercent
+                  << "%" << std::endl;
+    }
+
+    const std::chrono::steady_clock::time_point beginTime = std::chrono::steady_clock::now();
+    const int progressTag = 101;
+    int completed = 0;
+    int nextPercent = opt.progressPercent;
+    int localFailures = 0;
+    int filesInPart = 0;
+    int partId = 0;
+    bool outputOpen = false;
+    OutputFiles outputs;
+
+    for (int workId = mpiRank; workId < totalFiles; workId += mpiSize) {
+        if (!outputOpen || (opt.outputFilesPerPart > 0 &&
+                            filesInPart == opt.outputFilesPerPart)) {
+            if (outputOpen && !closeOutputFiles(opt, mpiRank, outputs)) {
+                ++localFailures;
+            }
+            if (outputOpen) {
+                ++partId;
+            }
+            outputs = OutputFiles();
+            outputOpen = openOutputFiles(opt, mpiRank, partId, outputs);
+            filesInPart = 0;
+        }
+
+        bool success = outputOpen && processInputFile(workId, opt, outputs, mpiRank);
+        if (!success) {
+            ++localFailures;
+        }
+        ++filesInPart;
+
+        const int status = success ? 1 : 0;
+        if (mpiRank == 0) {
+            ++completed;
+            int messageWaiting = 0;
+            MPI_Status messageStatus;
+            do {
+                MPI_Iprobe(MPI_ANY_SOURCE, progressTag, MPI_COMM_WORLD,
+                           &messageWaiting, &messageStatus);
+                if (messageWaiting) {
+                    int workerStatus = 0;
+                    MPI_Recv(&workerStatus, 1, MPI_INT, messageStatus.MPI_SOURCE,
+                             progressTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    ++completed;
+                }
+            } while (messageWaiting);
+            reportProgress(completed, totalFiles, opt.progressPercent, nextPercent);
+        }
+        else {
+            MPI_Send(&status, 1, MPI_INT, 0, progressTag, MPI_COMM_WORLD);
         }
     }
 
-    const std::chrono::steady_clock::time_point endTimeALL = std::chrono::steady_clock::now();
-    std::cout << "Done in "
-              << std::chrono::duration_cast<std::chrono::microseconds>(endTimeALL - beginTimeALL).count()/1000000.0/60.0
-              << std::endl;
+    if (outputOpen && !closeOutputFiles(opt, mpiRank, outputs)) {
+        ++localFailures;
+    }
 
-    return 0;
+    if (mpiRank == 0) {
+        while (completed < totalFiles) {
+            int workerStatus = 0;
+            MPI_Recv(&workerStatus, 1, MPI_INT, MPI_ANY_SOURCE, progressTag,
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            ++completed;
+            reportProgress(completed, totalFiles, opt.progressPercent, nextPercent);
+        }
+        if (100 % opt.progressPercent != 0) {
+            std::cout << "Progress: 100% (" << completed << "/" << totalFiles
+                      << " input files completed)" << std::endl;
+        }
+    }
+
+    int totalFailures = 0;
+    MPI_Reduce(&localFailures, &totalFailures, 1, MPI_INT, MPI_SUM, 0,
+               MPI_COMM_WORLD);
+
+    if (mpiRank == 0) {
+        const std::chrono::steady_clock::time_point endTime = std::chrono::steady_clock::now();
+        std::cout << "Done in "
+                  << std::chrono::duration_cast<std::chrono::microseconds>(endTime - beginTime).count()/1000000.0/60.0
+                  << " minutes with " << totalFailures << " failure(s)" << std::endl;
+    }
+
+    MPI_Finalize();
+    return totalFailures == 0 ? 0 : 1;
 }

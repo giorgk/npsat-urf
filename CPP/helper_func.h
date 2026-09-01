@@ -13,8 +13,7 @@
 #include <limits>
 
 
-bool readOptionFile(URFoptions& opt){
-    const std::string optfile = "npsat_urf.opt";
+bool readOptionFile(const std::string& optfile, URFoptions& opt){
     std::ifstream datafile(optfile.c_str());
     if (!datafile.good()) {
         std::cout << "Can't open the file " << optfile << std::endl;
@@ -36,6 +35,22 @@ bool readOptionFile(URFoptions& opt){
             }
             if (propname.compare("paddingZeros") == 0){
                 inp >> opt.paddingZeros;
+                continue;
+            }
+            if (propname.compare("nproc") == 0){
+                inp >> opt.nproc;
+                continue;
+            }
+            if (propname.compare("niter") == 0){
+                inp >> opt.niter;
+                continue;
+            }
+            if (propname.compare("output_files_per_part") == 0){
+                inp >> opt.outputFilesPerPart;
+                continue;
+            }
+            if (propname.compare("progress_percent") == 0){
+                inp >> opt.progressPercent;
                 continue;
             }
             if (propname.compare("output_prefix") == 0){

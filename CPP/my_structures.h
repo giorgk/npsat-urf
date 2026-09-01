@@ -90,7 +90,10 @@ struct URFoptions{
     std::string fileType = "npsat_ascii";
     int paddingZeros;
     int iterPaddingZeros = 4;
-    int ProcId;
+    int nproc = 0;
+    int niter = 0;
+    int outputFilesPerPart = 0;
+    int progressPercent = 5;
 
     double alpha = 0.32;
     double beta = 0.83;
