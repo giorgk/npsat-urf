@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -282,6 +283,11 @@ bool processInputFile(const int workId,
         return false;
     }
 
+    // Measure separately so a failed size query cannot disturb the reader.
+    std::ifstream sizeFile(filename.c_str(), std::ios::binary | std::ios::ate);
+    const std::streamoff fileBytes = sizeFile.tellg();
+    sizeFile.close();
+    int nextFilePercent = opt.progressPercent;
     std::chrono::steady_clock::time_point beginTime = std::chrono::steady_clock::now();
     int cntStrml = 0;
     StreamlineTrajectory trajectory;
@@ -301,6 +307,20 @@ bool processInputFile(const int workId,
             processCompleteStreamline(trajectory, opt, files.result, files.discard,
                                       cntStrml, beginTime, totalStreamlineSeconds,
                                       maxStreamlineSeconds);
+            if (fileBytes > 0) {
+                const std::streamoff position = datafile.tellg();
+                // Reserve 100% for successfully reaching the end of the file.
+                const int percent = position < 0 ? 0 : std::min(99,
+                    static_cast<int>(100.0L * position / fileBytes));
+                if (percent >= nextFilePercent) {
+                    std::cout << "MPI rank " << mpiRank << " | work " << workId
+                              << " | input " << filename << " | file progress "
+                              << percent << "% (bytes) | streamlines " << cntStrml
+                              << std::endl;
+                    nextFilePercent = std::min(100,
+                        (percent / opt.progressPercent + 1) * opt.progressPercent);
+                }
+            }
         }
     }
     catch (const std::exception& e) {
@@ -310,6 +330,9 @@ bool processInputFile(const int workId,
         return false;
     }
     streamlineCount = cntStrml;
+    std::cout << "MPI rank " << mpiRank << " | work " << workId
+              << " | input " << filename << " | file progress 100% (bytes)"
+              << " | streamlines " << cntStrml << std::endl;
     return true;
 }
 
@@ -341,20 +364,17 @@ void reportProgress(const std::vector<long long>& rankCompletedFiles,
     }
 
     const int percent = static_cast<int>((100LL * completed) / total);
-    while (nextPercent <= 100 && percent >= nextPercent) {
-        std::cout << "Progress " << nextPercent << "% | files " << completed
+    if (nextPercent <= 100 && percent >= nextPercent) {
+        std::cout << "Progress " << percent << "% | files " << completed
                   << "/" << total << " | streamlines " << streamlines
                   << " | avg streamline " << std::setprecision(6) << std::fixed
                   << averageOfRankAverages << " s | max streamline "
                   << maximumStreamlineSeconds << " s" << std::endl;
-        if (nextPercent == 100) {
+        if (percent == 100) {
             nextPercent = 101;
         }
         else {
-            nextPercent += interval;
-            if (nextPercent > 100) {
-                nextPercent = 100;
-            }
+            nextPercent = std::min(100, (percent / interval + 1) * interval);
         }
     }
 }
