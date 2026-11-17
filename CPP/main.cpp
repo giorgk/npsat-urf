@@ -397,7 +397,7 @@ int main(int argc, char *argv[]) {
     const std::string inputArg(argv[1]);
     if (inputArg.compare("-v") == 0) {
         if (mpiRank == 0) {
-            std::cout << "version 2.0.0" << std::endl;
+            std::cout << "version 2.0.1" << std::endl;
         }
         MPI_Finalize();
         return 0;

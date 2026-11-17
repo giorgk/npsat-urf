@@ -91,6 +91,17 @@ It reads the corresponding filename:
 prefix + "rank_" + zero_pad(input_rank, paddingZeros) + "_iter_" + zero_pad(input_iter, iter_paddingZeros) + "." + suffix
 ```
 
+For `file_type npsat_bin`, the file is a headerless sequence of seven native
+64-bit doubles per record. Particle records contain
+`pid, Eid, Sid, x, y, z, velocity_magnitude`. Termination records contain
+`-1, last_pid, Eid, Sid, exit_reason, 0, 0`. Ichnos writes its own numeric
+`ExitReason` enum value in the `exit_reason` field; NPSAT-URF preserves that
+number for filtering and output. The current Ichnos codes are
+`0 CHANGE_PROCESSOR`, `1 EXIT_TOP`, `2 EXIT_BOTTOM`, `3 EXIT_SIDE`,
+`4 INIT_OUT`, `5 STUCK`, `6 NO_EXIT`, `7 MAX_INNER_ITER`,
+`8 FIRST_POINT_GHOST`, `9 FAR_AWAY`, `10 MAX_AGE`, `11 ATTRACT`,
+`12 NOT_IN_SUBDOMAIN`, and `13 NO_REASON`.
+
 URF MPI process `r` handles work ids `r`, `r + urf_processes`, `r + 2 * urf_processes`, and so on, while they remain below `nproc * niter`.
 
 ### Example: 16 trace processors, 5 iterations, 6 URF processors
